@@ -55,7 +55,7 @@ const getDefaultPlayerCount = (sportType: string): number => {
 export default function CustomerBookings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedSportType, setSelectedSportType] = useState<string | null>(null);
+  const [selectedSportType, setSelectedSportType] = useState<string>("all");
   const [selectedTurf, setSelectedTurf] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -153,7 +153,7 @@ export default function CustomerBookings() {
   const filteredTurfs = turfs ? turfs.filter(turf => 
     (turf.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     turf.location?.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (selectedSportType ? turf.sportType === selectedSportType : true)
+    (selectedSportType && selectedSportType !== "all" ? turf.sportType === selectedSportType : true)
   ) : [];
 
   // Get filtered slots based on selected turf
@@ -189,14 +189,14 @@ export default function CustomerBookings() {
                   />
                 </div>
                 <Select
-                  value={selectedSportType || ""}
-                  onValueChange={(value) => setSelectedSportType(value || null)}
+                  value={selectedSportType}
+                  onValueChange={(value) => setSelectedSportType(value)}
                 >
                   <SelectTrigger className="w-full md:w-1/3">
                     <SelectValue placeholder="Filter by sport" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All sports</SelectItem>
+                    <SelectItem value="all">All sports</SelectItem>
                     {sportTypeEnum.enumValues.map((sport) => (
                       <SelectItem key={sport} value={sport}>
                         {sport.charAt(0).toUpperCase() + sport.slice(1)}
