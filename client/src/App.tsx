@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
+import CursorTrail from "@/components/common/cursor-trail";
 
 // Page imports
 import NotFound from "@/pages/not-found";
@@ -63,6 +64,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router />
+        <CursorTrail />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
