@@ -90,14 +90,14 @@ export const insertBookingSchema = createInsertSchema(bookings, {
   bookingStartTime: z.union([
     z.string().refine(val => !isNaN(Date.parse(val)), {
       message: "Invalid date format for booking start time"
-    }).transform(val => new Date(val).toISOString()),
-    z.date().transform(val => val.toISOString())
+    }).transform(val => new Date(val)),
+    z.date()
   ]),
   bookingEndTime: z.union([
     z.string().refine(val => !isNaN(Date.parse(val)), {
       message: "Invalid date format for booking end time"
-    }).transform(val => new Date(val).toISOString()),
-    z.date().transform(val => val.toISOString())
+    }).transform(val => new Date(val)),
+    z.date()
   ]),
   notes: z.string().optional(),
 }).omit({ id: true, createdAt: true });

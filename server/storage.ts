@@ -189,28 +189,26 @@ export class PostgresStorage implements IStorage {
   }
   
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
+    // Create a new object to hold the processed data
+    const processedData: any = { ...bookingData };
+    
+    // Make sure date fields are properly formatted as Date objects
+    if (bookingData.bookingStartTime) {
+      // Ensure we have a Date object
+      processedData.bookingStartTime = bookingData.bookingStartTime instanceof Date 
+        ? bookingData.bookingStartTime 
+        : new Date(bookingData.bookingStartTime);
+    }
+    
+    if (bookingData.bookingEndTime) {
+      // Ensure we have a Date object
+      processedData.bookingEndTime = bookingData.bookingEndTime instanceof Date
+        ? bookingData.bookingEndTime
+        : new Date(bookingData.bookingEndTime);
+    }
+    
     // Start a transaction to handle slot booking atomically
     const result = await db.transaction(async (tx) => {
-      // Create a new object to hold the processed data
-      const processedData: any = { ...bookingData };
-      
-      // Make sure date fields are properly formatted as strings
-      if (bookingData.bookingStartTime) {
-        // Convert to ISO string if needed
-        processedData.bookingStartTime = typeof bookingData.bookingStartTime === 'object' && 
-                                         bookingData.bookingStartTime.toISOString
-                                         ? bookingData.bookingStartTime.toISOString()
-                                         : bookingData.bookingStartTime;
-      }
-      
-      if (bookingData.bookingEndTime) {
-        // Convert to ISO string if needed
-        processedData.bookingEndTime = typeof bookingData.bookingEndTime === 'object' && 
-                                       bookingData.bookingEndTime.toISOString
-                                       ? bookingData.bookingEndTime.toISOString()
-                                       : bookingData.bookingEndTime;
-      }
-      
       // Create the booking with processed data
       const booking = (await tx.insert(bookings).values(processedData).returning())[0];
       
@@ -229,21 +227,19 @@ export class PostgresStorage implements IStorage {
     // Create a new object to hold the processed data
     const processedData: any = { ...bookingData };
       
-    // Make sure date fields are properly formatted as strings
+    // Make sure date fields are properly formatted as Date objects
     if (bookingData.bookingStartTime) {
-      // Convert to ISO string if needed
-      processedData.bookingStartTime = typeof bookingData.bookingStartTime === 'object' && 
-                                       bookingData.bookingStartTime.toISOString
-                                       ? bookingData.bookingStartTime.toISOString()
-                                       : bookingData.bookingStartTime;
+      // Ensure we have a Date object
+      processedData.bookingStartTime = bookingData.bookingStartTime instanceof Date 
+        ? bookingData.bookingStartTime 
+        : new Date(bookingData.bookingStartTime);
     }
     
     if (bookingData.bookingEndTime) {
-      // Convert to ISO string if needed
-      processedData.bookingEndTime = typeof bookingData.bookingEndTime === 'object' && 
-                                     bookingData.bookingEndTime.toISOString
-                                     ? bookingData.bookingEndTime.toISOString()
-                                     : bookingData.bookingEndTime;
+      // Ensure we have a Date object
+      processedData.bookingEndTime = bookingData.bookingEndTime instanceof Date
+        ? bookingData.bookingEndTime
+        : new Date(bookingData.bookingEndTime);
     }
     
     // If status is being updated to cancelled, free up the slot
@@ -443,8 +439,8 @@ export class PostgresStorage implements IStorage {
             status: "confirmed",
             teamName: "Chennai Stars",
             playerCount: 16,
-            bookingStartTime: slot.startTime.toISOString(),
-            bookingEndTime: slot.endTime.toISOString(),
+            bookingStartTime: slot.startTime,
+            bookingEndTime: slot.endTime,
             notes: "Weekend match practice"
           });
         }
@@ -461,8 +457,8 @@ export class PostgresStorage implements IStorage {
             status: "confirmed",
             teamName: "United FC",
             playerCount: 10,
-            bookingStartTime: slot.startTime.toISOString(),
-            bookingEndTime: slot.endTime.toISOString(),
+            bookingStartTime: slot.startTime,
+            bookingEndTime: slot.endTime,
             notes: "Regular practice session"
           });
         }
