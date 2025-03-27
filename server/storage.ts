@@ -300,7 +300,7 @@ export class PostgresStorage implements IStorage {
           sportType: "cricket",
           maxPlayers: 22,
           duration: 120, // 2 hours
-          price: 5000, // ₹5,000
+          price: 400, // ₹400
           amenities: { changeRooms: true, floodlights: true, parking: true, refreshments: true },
           location: "North Sports Complex"
         });
@@ -313,7 +313,7 @@ export class PostgresStorage implements IStorage {
           sportType: "football",
           maxPlayers: 14,
           duration: 60, // 1 hour
-          price: 4000, // ₹4,000
+          price: 500, // ₹500
           amenities: { changeRooms: true, floodlights: true, parking: true },
           location: "Central Stadium"
         });
@@ -326,7 +326,7 @@ export class PostgresStorage implements IStorage {
           sportType: "badminton",
           maxPlayers: 4,
           duration: 60, // 1 hour
-          price: 2000, // ₹2,000
+          price: 500, // ₹500
           amenities: { airConditioned: true, equipmentRental: true },
           location: "East Sports Hall"
         });

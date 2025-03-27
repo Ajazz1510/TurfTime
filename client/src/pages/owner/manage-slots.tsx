@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import Sidebar from "@/components/dashboard/sidebar";
 import Header from "@/components/dashboard/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Service, InsertSlot, Slot } from "@shared/schema";
+import { InsertSlot, Slot, Turf } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, addHours, setHours, setMinutes, parse, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Clock, Loader2, Plus, Trash2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +56,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Schema for slot creation
 const slotFormSchema = z.object({
-  serviceId: z.string().min(1, "Please select a service"),
+  turfId: z.string().min(1, "Please select a turf"),
   date: z.date({
     required_error: "Please select a date",
   }),
@@ -70,14 +70,14 @@ export default function ManageSlots() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<string>("");
+  const [selectedTurf, setSelectedTurf] = useState<string>("");
   const [isGeneratingSlots, setIsGeneratingSlots] = useState(false);
   const [isCreatingSingleSlot, setIsCreatingSingleSlot] = useState(false);
   const [repeatDays, setRepeatDays] = useState<number>(1);
 
-  // Fetch owner's services
-  const { data: services, isLoading: servicesLoading } = useQuery<Service[]>({
-    queryKey: ['/api/services', { ownerId: user?.id }],
+  // Fetch owner's turfs
+  const { data: turfs, isLoading: turfsLoading } = useQuery<Turf[]>({
+    queryKey: ['/api/turfs', { ownerId: user?.id }],
   });
 
   // Fetch owner's slots
@@ -89,7 +89,7 @@ export default function ManageSlots() {
   const form = useForm<SlotFormValues>({
     resolver: zodResolver(slotFormSchema),
     defaultValues: {
-      serviceId: "",
+      turfId: "",
       startTime: "09:00",
       duration: "",
     },
@@ -135,16 +135,16 @@ export default function ManageSlots() {
     }
   });
 
-  // Filter services for the selected service
-  const handleServiceChange = (value: string) => {
-    setSelectedService(value);
-    form.setValue("serviceId", value);
+  // Filter turfs for the selected turf
+  const handleTurfChange = (value: string) => {
+    setSelectedTurf(value);
+    form.setValue("turfId", value);
     
-    // Set duration based on selected service
-    if (value && services) {
-      const service = services.find(s => s.id.toString() === value);
-      if (service) {
-        form.setValue("duration", service.duration.toString());
+    // Set duration based on selected turf
+    if (value && turfs) {
+      const turf = turfs.find(t => t.id.toString() === value);
+      if (turf) {
+        form.setValue("duration", turf.duration.toString());
       }
     }
   };
@@ -156,13 +156,13 @@ export default function ManageSlots() {
     setIsCreatingSingleSlot(true);
     
     // Parse form data
-    const serviceId = parseInt(data.serviceId);
-    const service = services?.find(s => s.id === serviceId);
+    const turfId = parseInt(data.turfId);
+    const turf = turfs?.find(t => t.id === turfId);
     
-    if (!service) {
+    if (!turf) {
       toast({
-        title: "Invalid service",
-        description: "Please select a valid service.",
+        title: "Invalid turf",
+        description: "Please select a valid turf.",
         variant: "destructive",
       });
       setIsCreatingSingleSlot(false);
@@ -181,7 +181,7 @@ export default function ManageSlots() {
     // Create slot
     const slotData: InsertSlot = {
       ownerId: user.id,
-      serviceId,
+      turfId,
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
       isBooked: false,
@@ -196,7 +196,7 @@ export default function ManageSlots() {
         setIsDialogOpen(false);
         setIsCreatingSingleSlot(false);
         form.reset({
-          serviceId: data.serviceId,
+          turfId: data.turfId,
           startTime: data.startTime,
           duration: data.duration,
         });
@@ -209,7 +209,7 @@ export default function ManageSlots() {
 
   // Handle multiple slots generation
   const generateMultipleSlots = () => {
-    if (!user || !form.getValues("serviceId") || !form.getValues("date") || !form.getValues("startTime") || !form.getValues("duration") || repeatDays < 1) {
+    if (!user || !form.getValues("turfId") || !form.getValues("date") || !form.getValues("startTime") || !form.getValues("duration") || repeatDays < 1) {
       toast({
         title: "Missing information",
         description: "Please fill in all fields to generate slots.",
@@ -220,15 +220,15 @@ export default function ManageSlots() {
     
     setIsGeneratingSlots(true);
     
-    const { serviceId, date, startTime, duration } = form.getValues();
-    const serviceIdNum = parseInt(serviceId);
+    const { turfId, date, startTime, duration } = form.getValues();
+    const turfIdNum = parseInt(turfId);
     const durationNum = parseInt(duration);
-    const service = services?.find(s => s.id === serviceIdNum);
+    const turf = turfs?.find(t => t.id === turfIdNum);
     
-    if (!service) {
+    if (!turf) {
       toast({
-        title: "Invalid service",
-        description: "Please select a valid service.",
+        title: "Invalid turf",
+        description: "Please select a valid turf.",
         variant: "destructive",
       });
       setIsGeneratingSlots(false);
@@ -253,7 +253,7 @@ export default function ManageSlots() {
       
       const slotData: InsertSlot = {
         ownerId: user.id,
-        serviceId: serviceIdNum,
+        turfId: turfIdNum,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         isBooked: false,
@@ -272,7 +272,7 @@ export default function ManageSlots() {
         setIsDialogOpen(false);
         setIsGeneratingSlots(false);
         form.reset({
-          serviceId,
+          turfId,
           startTime,
           duration,
         });
@@ -287,17 +287,17 @@ export default function ManageSlots() {
       });
   };
 
-  // Get service name by ID
-  const getServiceName = (serviceId: number) => {
-    if (!services) return "Loading...";
-    const service = services.find(s => s.id === serviceId);
-    return service ? service.name : "Unknown Service";
+  // Get turf name by ID
+  const getTurfName = (turfId: number) => {
+    if (!turfs) return "Loading...";
+    const turf = turfs.find(t => t.id === turfId);
+    return turf ? turf.name : "Unknown Turf";
   };
 
-  // Filter slots by service
+  // Filter slots by turf
   const filteredSlots = slots 
-    ? selectedService 
-      ? slots.filter(slot => slot.serviceId.toString() === selectedService)
+    ? selectedTurf 
+      ? slots.filter(slot => slot.turfId.toString() === selectedTurf)
       : slots
     : [];
 
@@ -308,7 +308,7 @@ export default function ManageSlots() {
 
   // Group slots by date
   const slotsByDate = sortedSlots.reduce((acc, slot) => {
-    const date = format(parseISO(slot.startTime), 'yyyy-MM-dd');
+    const date = format(new Date(slot.startTime), 'yyyy-MM-dd');
     if (!acc[date]) {
       acc[date] = [];
     }
@@ -328,7 +328,7 @@ export default function ManageSlots() {
             <div>
               <h1 className="text-2xl font-bold">Time Slots</h1>
               <p className="text-muted-foreground">
-                Create and manage appointment time slots for your services
+                Create and manage time slots for your turfs
               </p>
             </div>
             
@@ -343,7 +343,7 @@ export default function ManageSlots() {
                 <DialogHeader>
                   <DialogTitle>Create Time Slots</DialogTitle>
                   <DialogDescription>
-                    Add new appointment slots for your services
+                    Add new availability slots for your turfs
                   </DialogDescription>
                 </DialogHeader>
                 
@@ -357,36 +357,36 @@ export default function ManageSlots() {
                     <div className="py-4 space-y-4">
                       <FormField
                         control={form.control}
-                        name="serviceId"
+                        name="turfId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Service</FormLabel>
+                            <FormLabel>Turf</FormLabel>
                             <Select
                               value={field.value}
-                              onValueChange={handleServiceChange}
+                              onValueChange={handleTurfChange}
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select a service" />
+                                  <SelectValue placeholder="Select a turf" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {servicesLoading ? (
+                                {turfsLoading ? (
                                   <div className="flex items-center justify-center p-4">
                                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                                   </div>
-                                ) : services && services.length > 0 ? (
-                                  services.map((service) => (
+                                ) : turfs && turfs.length > 0 ? (
+                                  turfs.map((turf) => (
                                     <SelectItem 
-                                      key={service.id} 
-                                      value={service.id.toString()}
+                                      key={turf.id} 
+                                      value={turf.id.toString()}
                                     >
-                                      {service.name}
+                                      {turf.name} - {turf.sportType}
                                     </SelectItem>
                                   ))
                                 ) : (
                                   <div className="p-2 text-center text-sm text-muted-foreground">
-                                    No services found
+                                    No turfs found
                                   </div>
                                 )}
                               </SelectContent>
@@ -534,131 +534,119 @@ export default function ManageSlots() {
             </Dialog>
           </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Manage Available Time Slots</CardTitle>
-              <CardDescription>
-                View, filter and delete your appointment slots
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Filter by Service</label>
-                <Select
-                  value={selectedService}
-                  onValueChange={setSelectedService}
-                >
-                  <SelectTrigger className="w-full sm:w-[300px]">
-                    <SelectValue placeholder="All Services" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Services</SelectItem>
-                    {servicesLoading ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : services && services.length > 0 ? (
-                      services.map((service) => (
-                        <SelectItem 
-                          key={service.id} 
-                          value={service.id.toString()}
-                        >
-                          {service.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <div className="p-2 text-center text-sm text-muted-foreground">
-                        No services found
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium">Filter by Turf</h2>
+            </div>
+            <Select value={selectedTurf} onValueChange={setSelectedTurf}>
+              <SelectTrigger className="w-full md:w-[300px]">
+                <SelectValue placeholder="All Turfs" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Turfs</SelectItem>
+                {turfsLoading ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : turfs && turfs.length > 0 ? (
+                  turfs.map((turf) => (
+                    <SelectItem key={turf.id} value={turf.id.toString()}>
+                      {turf.name} - {turf.sportType}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-center text-sm text-muted-foreground">
+                    No turfs found
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-6">
+            {slotsLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-full max-w-sm" />
+                <Skeleton className="h-64 w-full rounded-md" />
               </div>
-              
-              {slotsLoading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-32 w-full" />
-                  <Skeleton className="h-32 w-full" />
+            ) : sortedSlots.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center animate-in fade-in-50">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                  <Clock className="h-10 w-10 text-primary" />
                 </div>
-              ) : Object.keys(slotsByDate).length > 0 ? (
-                <div className="space-y-8">
-                  {Object.entries(slotsByDate).map(([date, dateSlots]) => (
-                    <div key={date}>
-                      <h3 className="text-lg font-medium mb-4">
-                        {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
-                      </h3>
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Service</TableHead>
-                              <TableHead>Time</TableHead>
-                              <TableHead>Duration</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {dateSlots.map((slot) => (
+                <h2 className="mt-6 text-xl font-semibold">No time slots found</h2>
+                <p className="mt-2 text-center text-sm text-muted-foreground">
+                  You haven't created any time slots yet. Click the "Create New Slots" button to add availability for your turfs.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {Object.entries(slotsByDate).map(([date, daySlots]) => (
+                  <Card key={date}>
+                    <CardHeader className="pb-3">
+                      <CardTitle>{format(new Date(date), 'EEEE, MMMM d, yyyy')}</CardTitle>
+                      <CardDescription>
+                        {daySlots.length} {daySlots.length === 1 ? 'slot' : 'slots'} available
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[180px]">Turf</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Duration</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {daySlots.map(slot => {
+                            const startTime = new Date(slot.startTime);
+                            const endTime = new Date(slot.endTime);
+                            const durationMs = endTime.getTime() - startTime.getTime();
+                            const durationMins = Math.round(durationMs / (1000 * 60));
+                            
+                            return (
                               <TableRow key={slot.id}>
                                 <TableCell className="font-medium">
-                                  {getServiceName(slot.serviceId)}
+                                  {getTurfName(slot.turfId)}
                                 </TableCell>
                                 <TableCell>
-                                  {format(parseISO(slot.startTime), 'h:mm a')} - {format(parseISO(slot.endTime), 'h:mm a')}
+                                  {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
                                 </TableCell>
                                 <TableCell>
-                                  {Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / (1000 * 60))} min
+                                  {durationMins} minutes
                                 </TableCell>
                                 <TableCell>
-                                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                    slot.isBooked 
-                                      ? "bg-red-100 text-red-800" 
-                                      : "bg-green-100 text-green-800"
-                                  }`}>
-                                    {slot.isBooked ? "Booked" : "Available"}
-                                  </span>
+                                  <div className="flex items-center">
+                                    <div className={`mr-2 h-2 w-2 rounded-full ${slot.isBooked ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                                    <span>{slot.isBooked ? 'Booked' : 'Available'}</span>
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => deleteSlotMutation.mutate(slot.id)}
-                                    disabled={slot.isBooked || deleteSlotMutation.isPending}
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  {!slot.isBooked && (
+                                    <Button 
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => deleteSlotMutation.mutate(slot.id)}
+                                      disabled={deleteSlotMutation.isPending}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </TableCell>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No time slots found</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                    {selectedService 
-                      ? "There are no time slots for the selected service. Try selecting a different service or create new slots."
-                      : "You haven't created any time slots yet. Click the button below to create your first slot."}
-                  </p>
-                  <Button 
-                    onClick={() => setIsDialogOpen(true)}
-                    variant="outline"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Slots
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>
