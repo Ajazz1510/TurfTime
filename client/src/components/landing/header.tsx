@@ -46,7 +46,7 @@ export default function Header() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="flex items-center">
+              <Link href="/landing" className="flex items-center">
                 <Footprints className="h-6 w-6 text-primary mr-2" />
                 <span className="font-bold text-xl">
                   <span className="text-primary">Turf</span>

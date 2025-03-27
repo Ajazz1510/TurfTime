@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 // Page imports
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
+import LandingPage from "@/pages/landing-page";
 import AuthPage from "@/pages/auth-page";
 
 // Customer pages
@@ -29,6 +30,9 @@ function Router() {
       {/* Public routes - no auth needed for these */}
       <Route path="/">
         {() => <HomePage />}
+      </Route>
+      <Route path="/landing">
+        {() => <LandingPage />}
       </Route>
       <Route path="/auth">
         {() => <AuthPage />}

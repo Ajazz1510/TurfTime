@@ -117,7 +117,7 @@ export default function Sidebar({ className }: SidebarProps) {
         <div className="flex h-full flex-col">
           {/* Logo and close button for mobile */}
           <div className="flex items-center justify-between mb-8 mt-2">
-            <Link href="/" className="text-primary font-bold text-2xl">
+            <Link href="/landing" className="text-primary font-bold text-2xl">
               TurfTime
             </Link>
             <Button
@@ -143,13 +143,13 @@ export default function Sidebar({ className }: SidebarProps) {
           <nav className="flex-1 space-y-1">
             {/* Home link */}
             <Link
-              href="/"
+              href="/landing"
               onClick={() => setMobileOpen(false)}
             >
               <a
                 className={cn(
                   "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  location === "/"
+                  location === "/landing"
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 )}
