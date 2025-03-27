@@ -231,9 +231,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/slots", isOwner, async (req, res) => {
     try {
+      console.log("Creating slot with data:", JSON.stringify(req.body));
+      
       const validation = insertSlotSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ message: "Invalid slot data", errors: validation.error.format() });
+        const errors = validation.error.format();
+        console.log("Validation errors:", JSON.stringify(errors));
+        return res.status(400).json({ message: "Invalid slot data", errors });
       }
 
       // Ensure ownerId matches the authenticated user
@@ -250,10 +254,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Turf does not belong to this owner" });
       }
 
-      const slot = await storage.createSlot(req.body);
-      res.status(201).json(slot);
+      try {
+        const parsedData = {
+          ...validation.data,
+          startTime: new Date(validation.data.startTime),
+          endTime: new Date(validation.data.endTime),
+          ownerId: req.user.id,
+          turfId: Number(req.body.turfId),
+          isBooked: false
+        };
+        
+        console.log("Attempting to create slot with:", JSON.stringify(parsedData));
+        const slot = await storage.createSlot(parsedData);
+        console.log("Slot created successfully:", JSON.stringify(slot));
+        res.status(201).json(slot);
+      } catch (dbError) {
+        console.error("Database error creating slot:", dbError);
+        res.status(500).json({ message: "Failed to create slot in database", error: dbError instanceof Error ? dbError.message : String(dbError) });
+      }
     } catch (error) {
-      res.status(500).json({ message: "Failed to create slot" });
+      console.error("Error creating slot:", error);
+      res.status(500).json({ message: "Failed to create slot", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
