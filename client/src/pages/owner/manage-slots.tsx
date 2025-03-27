@@ -108,7 +108,14 @@ export default function ManageSlots() {
   // Create slot mutation
   const createSlotMutation = useMutation({
     mutationFn: async (slotData: InsertSlot) => {
-      const res = await apiRequest("POST", "/api/slots", slotData);
+      // Convert Date objects to ISO strings for API
+      const formattedData = {
+        ...slotData,
+        startTime: slotData.startTime instanceof Date ? slotData.startTime.toISOString() : slotData.startTime,
+        endTime: slotData.endTime instanceof Date ? slotData.endTime.toISOString() : slotData.endTime,
+      };
+      
+      const res = await apiRequest("POST", "/api/slots", formattedData);
       return res.json();
     },
     onSuccess: () => {
