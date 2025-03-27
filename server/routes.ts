@@ -192,12 +192,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Slot routes
   app.get("/api/slots", async (req, res) => {
     try {
+      console.log("Slots request with query:", req.query);
       const ownerId = req.query.ownerId ? Number(req.query.ownerId) : undefined;
       const turfId = req.query.turfId ? Number(req.query.turfId) : undefined;
       const availableOnly = req.query.available === 'true';
+      const serviceId = req.query.serviceId ? Number(req.query.serviceId) : undefined;
       
       if (availableOnly) {
+        console.log("Fetching available slots with ownerId:", ownerId, "turfId:", turfId);
         const slots = await storage.getAvailableSlots(ownerId, turfId);
+        console.log(`Found ${slots.length} available slots`);
         res.json(slots);
       } else if (ownerId) {
         const slots = await storage.getSlotsByOwner(ownerId);
@@ -209,9 +213,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
         res.json(filteredSlots);
       } else {
-        res.status(400).json({ message: "Either ownerId or available=true must be provided" });
+        // For customers without filters, return all available slots
+        console.log("Fetching all available slots (no owner/turf specified)");
+        const slots = await storage.getAvailableSlots();
+        res.json(slots);
       }
     } catch (error) {
+      console.error("Error fetching slots:", error);
       res.status(500).json({ message: "Failed to get slots" });
     }
   });

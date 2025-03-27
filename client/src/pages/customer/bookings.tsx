@@ -54,8 +54,9 @@ export default function CustomerBookings() {
 
   // Fetch available slots based on selected service and owner
   const { data: slots, isLoading: slotsLoading } = useQuery<Slot[]>({
-    queryKey: ['/api/slots', { available: true, serviceId: selectedService, ownerId: selectedOwner }],
-    enabled: !!selectedService || !!selectedOwner,
+    queryKey: ['/api/slots', { available: true, turfId: selectedService, ownerId: selectedOwner }],
+    // Always enabled to get available slots
+    enabled: true,
   });
 
   // Book a slot mutation
@@ -87,15 +88,21 @@ export default function CustomerBookings() {
   const handleBookService = () => {
     if (!user || !selectedSlot || !selectedService) return;
     
+    const service = services?.find(s => s.id === selectedService);
+    if (!service) return;
+    
     const bookingData: InsertBooking = {
       customerId: user.id,
       ownerId: selectedSlot.ownerId,
-      serviceId: selectedService,
+      turfId: selectedService, // using turfId instead of serviceId
       slotId: selectedSlot.id,
+      teamName: "Team " + user.username, // default team name
+      playerCount: service.sportType === "cricket" ? 11 : 8, // default player count
       notes: bookingNotes,
       status: "confirmed"
     };
     
+    console.log("Creating booking with data:", bookingData);
     createBookingMutation.mutate(bookingData);
   };
 
@@ -106,9 +113,9 @@ export default function CustomerBookings() {
     (selectedOwner ? service.ownerId === selectedOwner : true)
   ) : [];
 
-  // Get filtered services based on selected service
+  // Get filtered slots based on selected service/turf
   const filteredSlots = slots ? slots.filter(slot => 
-    selectedService ? slot.serviceId === selectedService : true
+    selectedService ? slot.turfId === selectedService : true
   ) : [];
 
   return (
