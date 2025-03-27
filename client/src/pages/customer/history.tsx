@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import Sidebar from "@/components/dashboard/sidebar";
 import Header from "@/components/dashboard/header";
-import { Booking, Service } from "@shared/schema";
+import { Booking } from "@shared/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Loader2, AlertCircle, CheckCircle, XCircle, RotateCcw } from "lucide-react";
@@ -31,24 +31,19 @@ export default function CustomerHistory() {
     queryKey: ['/api/bookings'],
   });
 
-  // Fetch services for booking details
-  const { data: services, isLoading: servicesLoading } = useQuery<Service[]>({
-    queryKey: ['/api/services'],
-  });
+  // No need to fetch services anymore since the API provides turf details
 
-  // Get service name by ID
-  const getServiceName = (serviceId: number) => {
-    if (!services) return "Loading...";
-    const service = services.find(s => s.id === serviceId);
-    return service ? service.name : "Unknown Service";
+  // Get turf name from enhanced booking data
+  const getTurfName = (booking: any) => {
+    return booking.turfName || "Unknown Turf";
   };
 
   // Filter bookings by status and search query
   const filteredBookings = bookings?.filter(booking => {
     const matchesStatus = statusFilter ? booking.status === statusFilter : true;
-    const serviceName = getServiceName(booking.serviceId).toLowerCase();
+    const turfName = getTurfName(booking).toLowerCase();
     const matchesSearch = searchQuery 
-      ? serviceName.includes(searchQuery.toLowerCase()) || 
+      ? turfName.includes(searchQuery.toLowerCase()) || 
         booking.id.toString().includes(searchQuery) ||
         booking.notes?.toLowerCase().includes(searchQuery.toLowerCase())
       : true;
@@ -57,14 +52,15 @@ export default function CustomerHistory() {
 
   // Separate bookings by status
   const completedBookings = filteredBookings?.filter(b => b.status === "completed") || [];
-  const canceledBookings = filteredBookings?.filter(b => b.status === "canceled") || [];
+  const canceledBookings = filteredBookings?.filter(b => b.status === "cancelled") || [];
   const confirmedBookings = filteredBookings?.filter(b => b.status === "confirmed") || [];
 
   // Booking status icon mapping
   const statusIcons = {
     completed: <CheckCircle className="h-5 w-5 text-green-500" />,
-    canceled: <XCircle className="h-5 w-5 text-red-500" />,
+    cancelled: <XCircle className="h-5 w-5 text-red-500" />,
     confirmed: <Clock className="h-5 w-5 text-blue-500" />,
+    pending: <AlertCircle className="h-5 w-5 text-yellow-500" />
   };
 
   // Booking card component
@@ -78,18 +74,18 @@ export default function CustomerHistory() {
                <AlertCircle className="h-5 w-5 text-gray-500" />}
             </div>
             <CardTitle className="text-lg">
-              {getServiceName(booking.serviceId)}
+              {getTurfName(booking)}
             </CardTitle>
           </div>
           <Badge variant={
             booking.status === "completed" ? "default" :
-            booking.status === "canceled" ? "destructive" : "secondary"
+            booking.status === "cancelled" ? "destructive" : "secondary"
           }>
             {booking.status}
           </Badge>
         </div>
         <CardDescription>
-          Booking #{booking.id} with Business #{booking.ownerId}
+          Booking #{booking.id} • {booking.sportType || "Unknown"} Field
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -97,9 +93,18 @@ export default function CustomerHistory() {
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
             <span className="text-sm">
-              Created on {format(new Date(booking.createdAt), 'MMMM d, yyyy')}
+              Created on {format(new Date(booking.createdAt || new Date()), 'MMMM d, yyyy')}
             </span>
           </div>
+          
+          {booking.date && (
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+              <span className="text-sm">
+                Slot booked for {format(new Date(booking.date), 'MMMM d, yyyy')}{booking.time && ` at ${booking.time}`}
+              </span>
+            </div>
+          )}
           
           {booking.notes && (
             <div className="text-sm text-muted-foreground border-t pt-2 mt-2">
@@ -112,7 +117,7 @@ export default function CustomerHistory() {
   );
 
   // Loading state
-  if (bookingsLoading || servicesLoading) {
+  if (bookingsLoading) {
     return (
       <div className="flex min-h-screen bg-background">
         <Sidebar />
@@ -152,7 +157,7 @@ export default function CustomerHistory() {
                   <Label htmlFor="search" className="mb-2 block">Search bookings</Label>
                   <Input
                     id="search"
-                    placeholder="Search by service name or booking ID..."
+                    placeholder="Search by turf name or booking ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -170,7 +175,7 @@ export default function CustomerHistory() {
                       <SelectItem value="all">All bookings</SelectItem>
                       <SelectItem value="confirmed">Confirmed</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="canceled">Canceled</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -211,8 +216,8 @@ export default function CustomerHistory() {
                     <TabsTrigger value="completed">
                       Completed ({completedBookings.length})
                     </TabsTrigger>
-                    <TabsTrigger value="canceled">
-                      Canceled ({canceledBookings.length})
+                    <TabsTrigger value="cancelled">
+                      Cancelled ({canceledBookings.length})
                     </TabsTrigger>
                   </TabsList>
                   
@@ -246,14 +251,14 @@ export default function CustomerHistory() {
                     )}
                   </TabsContent>
                   
-                  <TabsContent value="canceled" className="mt-4">
+                  <TabsContent value="cancelled" className="mt-4">
                     {canceledBookings.length > 0 ? (
                       canceledBookings.map(booking => (
                         <BookingCard key={booking.id} booking={booking} />
                       ))
                     ) : (
                       <div className="text-center py-6">
-                        <p className="text-muted-foreground">No canceled bookings found.</p>
+                        <p className="text-muted-foreground">No cancelled bookings found.</p>
                       </div>
                     )}
                   </TabsContent>

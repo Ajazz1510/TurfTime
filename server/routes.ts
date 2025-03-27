@@ -340,15 +340,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Booking routes
   app.get("/api/bookings", isAuthenticated, async (req, res) => {
     try {
+      let bookings;
+      
       if (req.user.role === "owner") {
-        const bookings = await storage.getBookingsByOwner(req.user.id);
-        res.json(bookings);
+        bookings = await storage.getBookingsByOwner(req.user.id);
       } else if (req.user.role === "customer") {
-        const bookings = await storage.getBookingsByCustomer(req.user.id);
-        res.json(bookings);
+        bookings = await storage.getBookingsByCustomer(req.user.id);
       } else {
-        res.status(403).json({ message: "Unauthorized" });
+        return res.status(403).json({ message: "Unauthorized" });
       }
+
+      // Enhance bookings with user and turf information
+      const enhancedBookings = await Promise.all(bookings.map(async (booking) => {
+        // Get the turf details
+        const turf = await storage.getTurf(booking.turfId);
+        
+        // Get customer or owner details depending on user role
+        let userInfo;
+        if (req.user.role === "owner") {
+          userInfo = await storage.getUser(booking.customerId);
+        } else {
+          userInfo = await storage.getUser(booking.ownerId);
+        }
+        
+        return {
+          ...booking,
+          turfName: turf?.name || `Turf #${booking.turfId}`,
+          turfSportType: turf?.sportType || "Unknown",
+          userName: userInfo?.username || (req.user.role === "owner" ? `Customer #${booking.customerId}` : `Owner #${booking.ownerId}`),
+          userFullName: userInfo?.fullName || "Unknown"
+        };
+      }));
+      
+      res.json(enhancedBookings);
     } catch (error) {
       res.status(500).json({ message: "Failed to get bookings" });
     }
@@ -371,7 +395,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized to view this booking" });
       }
       
-      res.json(booking);
+      // Get the turf details
+      const turf = await storage.getTurf(booking.turfId);
+      
+      // Get customer or owner details depending on user role
+      let userInfo;
+      if (req.user.role === "owner") {
+        userInfo = await storage.getUser(booking.customerId);
+      } else {
+        userInfo = await storage.getUser(booking.ownerId);
+      }
+      
+      // Enhance booking with additional details
+      const enhancedBooking = {
+        ...booking,
+        turfName: turf?.name || `Turf #${booking.turfId}`,
+        turfSportType: turf?.sportType || "Unknown",
+        userName: userInfo?.username || (req.user.role === "owner" ? `Customer #${booking.customerId}` : `Owner #${booking.ownerId}`),
+        userFullName: userInfo?.fullName || "Unknown"
+      };
+      
+      res.json(enhancedBooking);
     } catch (error) {
       res.status(500).json({ message: "Failed to get booking" });
     }
