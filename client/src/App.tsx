@@ -26,17 +26,20 @@ import OwnerProfile from "@/pages/owner/profile";
 function Router() {
   return (
     <Switch>
-      {/* Public routes */}
-      <Route path="/" component={HomePage} />
-      <Route path="/auth" component={AuthPage} />
+      {/* Public routes - no auth needed for these */}
+      <Route path="/">
+        {() => <HomePage />}
+      </Route>
+      <Route path="/auth">
+        {() => <AuthPage />}
+      </Route>
       
-      {/* Customer routes */}
+      {/* Protected routes - these require authentication */}
       <ProtectedRoute path="/customer" component={CustomerDashboard} allowedRoles={["customer"]} />
       <ProtectedRoute path="/customer/bookings" component={CustomerBookings} allowedRoles={["customer"]} />
       <ProtectedRoute path="/customer/history" component={CustomerHistory} allowedRoles={["customer"]} />
       <ProtectedRoute path="/customer/profile" component={CustomerProfile} allowedRoles={["customer"]} />
       
-      {/* Owner routes */}
       <ProtectedRoute path="/owner" component={OwnerDashboard} allowedRoles={["owner"]} />
       <ProtectedRoute path="/owner/manage-turfs" component={ManageTurfs} allowedRoles={["owner"]} />
       <ProtectedRoute path="/owner/manage-slots" component={ManageSlots} allowedRoles={["owner"]} />
@@ -44,7 +47,9 @@ function Router() {
       <ProtectedRoute path="/owner/profile" component={OwnerProfile} allowedRoles={["owner"]} />
       
       {/* Fallback to 404 */}
-      <Route component={NotFound} />
+      <Route>
+        {() => <NotFound />}
+      </Route>
     </Switch>
   );
 }
