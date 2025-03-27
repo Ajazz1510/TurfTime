@@ -124,14 +124,7 @@ export default function ManageBookings() {
     const slot = slots.find(s => s.id === slotId);
     if (!slot) return "Unknown Time";
     
-    const durationMinutes = Math.round(
-      (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60000
-    );
-    const hours = Math.floor(durationMinutes / 60);
-    const minutes = durationMinutes % 60;
-    const durationFormatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    
-    return `${format(new Date(slot.startTime), 'h:mm a')} - ${format(new Date(slot.endTime), 'h:mm a')} (${durationFormatted})`;
+    return `${format(new Date(slot.startTime), 'h:mm a')} - ${format(new Date(slot.endTime), 'h:mm a')}`;
   };
 
   // Get slot date by ID

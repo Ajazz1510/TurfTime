@@ -76,7 +76,7 @@ export default function CustomerBookings() {
     sportType?: string;
     ownerName?: string;
   })[]>({
-    queryKey: ['/api/slots', { available: true, turfId: selectedTurf }],
+    queryKey: ['/api/slots', { available: "true", turfId: selectedTurf }],
     enabled: true,
   });
 
@@ -352,16 +352,6 @@ export default function CustomerBookings() {
                                 <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                                 <span className="text-sm">
                                   {format(new Date(slot.startTime), 'h:mm a')} - {format(new Date(slot.endTime), 'h:mm a')}
-                                  {/* Duration calculation */}
-                                  {" "}
-                                  ({(() => {
-                                    const durationMinutes = Math.round(
-                                      (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60000
-                                    );
-                                    const hours = Math.floor(durationMinutes / 60);
-                                    const minutes = durationMinutes % 60;
-                                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                                  })()})
                                 </span>
                               </div>
                               <Button 
@@ -437,16 +427,6 @@ export default function CustomerBookings() {
                         <Label>Time</Label>
                         <div className="font-medium">
                           {format(new Date(selectedSlot.startTime), 'h:mm a')} - {format(new Date(selectedSlot.endTime), 'h:mm a')}
-                          {/* Duration calculation */}
-                          {" "}
-                          ({(() => {
-                            const durationMinutes = Math.round(
-                              (new Date(selectedSlot.endTime).getTime() - new Date(selectedSlot.startTime).getTime()) / 60000
-                            );
-                            const hours = Math.floor(durationMinutes / 60);
-                            const minutes = durationMinutes % 60;
-                            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                          })()})
                         </div>
                       </div>
                     </div>
