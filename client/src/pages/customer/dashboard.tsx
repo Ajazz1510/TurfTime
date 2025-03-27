@@ -134,7 +134,7 @@ export default function CustomerDashboard() {
                           <span>{service.duration} mins</span>
                         </div>
                         <div className="font-semibold">
-                          ${(service.price / 100).toFixed(2)}
+                          ₹{service.price.toLocaleString()}
                         </div>
                       </div>
                     </CardContent>

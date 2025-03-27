@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slot, Service, InsertBooking } from "@shared/schema";
-import { Clock, Calendar, Search, DollarSign, Info, Loader2 } from "lucide-react";
+import { Clock, Calendar, Search, IndianRupee, Info, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -193,8 +193,8 @@ export default function CustomerBookings() {
                             <span>{service.duration} minutes</span>
                           </div>
                           <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>${(service.price / 100).toFixed(2)}</span>
+                            <IndianRupee className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>₹{service.price.toLocaleString()}</span>
                           </div>
                           <div className="flex items-center">
                             <Info className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -357,7 +357,7 @@ export default function CustomerBookings() {
                     <div className="space-y-1">
                       <Label>Price</Label>
                       <div className="font-medium">
-                        ${(services?.find(s => s.id === selectedService)?.price || 0) / 100}
+                        ₹{(services?.find(s => s.id === selectedService)?.price || 0).toLocaleString()}
                       </div>
                     </div>
                     

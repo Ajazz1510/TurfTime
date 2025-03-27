@@ -4,38 +4,41 @@ import { Check } from "lucide-react";
 const pricingPlans = [
   {
     title: "Basic",
-    price: "$29",
-    description: "Perfect for small businesses just getting started.",
+    price: "₹2,499",
+    description: "Perfect for small turf businesses just getting started.",
     features: [
       "1 staff account",
       "Up to 100 bookings/month",
       "Email reminders",
-      "Basic analytics"
+      "Basic analytics",
+      "UPI payments"
     ],
     popular: false
   },
   {
     title: "Professional",
-    price: "$79",
-    description: "For growing businesses with advanced needs.",
+    price: "₹5,999",
+    description: "For growing turf businesses with advanced needs.",
     features: [
       "5 staff accounts",
       "Unlimited bookings",
       "Email & SMS reminders",
       "Advanced analytics",
-      "Online payments"
+      "UPI & card payments",
+      "Booking calendar"
     ],
     popular: true
   },
   {
     title: "Enterprise",
-    price: "$199",
-    description: "For large businesses with complex requirements.",
+    price: "₹14,999",
+    description: "For large sports facilities with complex requirements.",
     features: [
       "20 staff accounts",
       "Unlimited bookings",
       "All reminder types",
       "Advanced analytics & reporting",
+      "All payment methods",
       "API access",
       "Dedicated support"
     ],

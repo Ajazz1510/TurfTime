@@ -36,7 +36,7 @@ export const turfs = pgTable("turfs", {
   sportType: sportTypeEnum("sport_type").notNull(),
   maxPlayers: integer("max_players").notNull(), // Maximum number of players allowed
   duration: integer("duration").notNull(), // in minutes
-  price: integer("price").notNull(), // in cents
+  price: integer("price").notNull(), // in rupees (INR)
   amenities: jsonb("amenities").default({}).notNull(),
   location: text("location"),
   imageUrl: text("image_url"),

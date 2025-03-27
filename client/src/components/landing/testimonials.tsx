@@ -4,7 +4,7 @@ const testimonials = [
   {
     name: "Sarah Johnson",
     role: "Owner, Glow Salon",
-    content: "BookEasy has transformed our salon business. No more phone tag or double bookings. Our clients love the easy booking process, and we've increased our bookings by 30%.",
+    content: "TurfTime has transformed our turf business. No more phone tag or double bookings. Our players love the easy booking process, and we've increased our bookings by 30%.",
     rating: 5,
     avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
   },
@@ -18,7 +18,7 @@ const testimonials = [
   {
     name: "Emily Rodriguez",
     role: "Regular Customer",
-    content: "As a customer, I love being able to book appointments online instead of calling. The reminders are helpful, and rescheduling is so easy. I wish all businesses used BookEasy!",
+    content: "As a player, I love being able to book turf slots online instead of calling. The reminders are helpful, and rescheduling is so easy. I wish all sports facilities used TurfTime!",
     rating: 4,
     avatarUrl: "https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
   }

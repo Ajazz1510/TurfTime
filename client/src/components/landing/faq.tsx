@@ -3,24 +3,24 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "When will BookEasy be available?",
-    answer: "We're planning to launch BookEasy in Q3 2023. Join our waitlist to get early access and be the first to know when we go live."
+    question: "When will TurfTime be available?",
+    answer: "We're planning to launch TurfTime in Q3 2025. Join our waitlist to get early access and be the first to know when we go live."
   },
   {
     question: "Is there a free trial available?",
     answer: "Yes, all plans include a 14-day free trial so you can experience the full platform before committing. No credit card required to start."
   },
   {
-    question: "What types of businesses can use BookEasy?",
-    answer: "BookEasy is designed for service-based businesses of all types, including salons, spas, healthcare providers, fitness studios, professional services, restaurants, and more. If you need to manage appointments, BookEasy can help."
+    question: "What types of sports facilities can use TurfTime?",
+    answer: "TurfTime is designed specifically for turf owners managing cricket, football, and badminton facilities. If you own or manage sports turfs and need to streamline your booking process, TurfTime is the perfect solution."
   },
   {
-    question: "Can I integrate BookEasy with my existing website?",
-    answer: "Absolutely! BookEasy provides a booking widget that can be easily embedded into your existing website. We also offer direct links to your booking page that you can share with customers."
+    question: "Can I integrate TurfTime with my existing website?",
+    answer: "Absolutely! TurfTime provides a booking widget that can be easily embedded into your existing website. We also offer direct links to your booking page that you can share with players and teams."
   },
   {
     question: "What payment methods do you accept?",
-    answer: "BookEasy accepts all major credit cards, including Visa, Mastercard, American Express, and Discover. We also support payments through PayPal and can integrate with popular payment processors."
+    answer: "TurfTime accepts all major credit cards, including Visa, Mastercard, American Express, and Discover. We also support payments through PayPal and can integrate with popular payment processors."
   }
 ];
 

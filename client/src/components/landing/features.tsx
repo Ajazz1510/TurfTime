@@ -25,7 +25,7 @@ const features = [
   },
   {
     title: "Online Payments",
-    description: "Accept payments online for bookings, deposits, or full service fees with secure payment processing.",
+    description: "Accept payments online via UPI, cards, and net banking for bookings, deposits, or full fees with secure payment processing.",
     icon: CreditCard,
   },
   {

@@ -43,7 +43,7 @@ export default function HowItWorks() {
         <div className="text-center">
           <h2 className="text-base font-semibold text-primary uppercase tracking-wide">How It Works</h2>
           <p className="mt-1 text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-4xl">Streamlined booking for everyone</p>
-          <p className="max-w-xl mt-5 mx-auto text-xl text-gray-500">BookEasy works for both business owners and customers, making the booking process simple and efficient.</p>
+          <p className="max-w-xl mt-5 mx-auto text-xl text-gray-500">TurfTime works for both turf owners and players, making the booking process simple and efficient.</p>
         </div>
 
         <div className="mt-16">

@@ -37,6 +37,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
 
+  // Service routes (alias for turfs to maintain compatibility with frontend)
+  app.get("/api/services", async (req, res) => {
+    try {
+      const ownerId = req.query.ownerId ? Number(req.query.ownerId) : undefined;
+      const sportType = req.query.sportType as string | undefined;
+      
+      if (ownerId) {
+        const turfs = await storage.getTurfsByOwner(ownerId);
+        res.json(turfs);
+      } else if (sportType) {
+        const turfs = await storage.getTurfsBySportType(sportType);
+        res.json(turfs);
+      } else {
+        // In a real app, we might want to limit this
+        const turfs = Array.from(
+          new Set(
+            (await Promise.all(
+              Array.from({ length: 10 }, (_, i) => i + 1).map(async (id) => {
+                return storage.getTurfsByOwner(id);
+              })
+            )).flat()
+          )
+        );
+        res.json(turfs);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get services" });
+    }
+  });
+
   // Turf routes
   app.get("/api/turfs", async (req, res) => {
     try {
@@ -77,6 +107,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(turf);
     } catch (error) {
       res.status(500).json({ message: "Failed to get turf" });
+    }
+  });
+  
+  // Service (turf) by ID endpoint for compatibility
+  app.get("/api/services/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const turf = await storage.getTurf(id);
+      if (!turf) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      res.json(turf);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get service" });
     }
   });
 
