@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import AppHeader from "@/components/common/app-header";
 
 interface HeaderProps {
   title: string;
@@ -21,7 +22,8 @@ export default function Header({ title }: HeaderProps) {
   const profilePath = isCustomer ? "/customer/profile" : "/owner/profile";
   
   return (
-    <header className="border-b border-border bg-card">
+    <header className="border-b border-border bg-card flex flex-col">
+      <AppHeader className="border-b border-border" />
       <div className="flex h-16 items-center px-4 md:px-6">
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">{title}</h1>

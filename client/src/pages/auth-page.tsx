@@ -27,6 +27,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import AppHeader from "@/components/common/app-header";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -117,9 +118,11 @@ export default function AuthPage() {
   const showBusinessFields = registerForm.watch("role") === "owner";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      {/* Form section */}
-      <div className="w-full md:w-1/2 py-10 px-5 md:px-10 flex flex-col justify-center">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <AppHeader className="bg-white" />
+      <div className="flex flex-1 flex-col md:flex-row">
+        {/* Form section */}
+        <div className="w-full md:w-1/2 py-10 px-5 md:px-10 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-10 text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">TurfTime</h1>
@@ -430,6 +433,7 @@ export default function AuthPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
