@@ -23,10 +23,10 @@ interface Point {
 
 export default function CursorTrail({ 
   className,
-  color = "rgb(74, 222, 128)", // Default to primary green color
-  particleCount = 30,
-  particleSize = 20,
-  particleDecayRate = 0.02
+  color = "rgb(255, 255, 255)", // White color for particles
+  particleCount = 35,
+  particleSize = 45,  // Extremely large particles
+  particleDecayRate = 0.01  // Even slower decay rate for much longer trails
 }: CursorTrailProps) {
   const [points, setPoints] = useState<Point[]>([]);
   const [isEnabled, setIsEnabled] = useState(true);
@@ -34,7 +34,7 @@ export default function CursorTrail({
   
   // Convert the CSS color to HSL components for variation
   const baseColor = useMemo(() => {
-    return { h: 142, s: 77, l: 58 }; // Approximate HSL values for the green primary
+    return { h: 0, s: 0, l: 100 }; // White color in HSL
   }, [color]);
   
   useEffect(() => {
@@ -83,8 +83,8 @@ export default function CursorTrail({
         const offsetX = Math.cos(angle) * distance;
         const offsetY = Math.sin(angle) * distance;
         
-        // Calculate hue variation (green to yellow-green)
-        const hueVariation = baseColor.h + (Math.random() * 20 - 10);
+        // For white smoke, we keep hue at 0 but might add subtle variations
+        const hueVariation = baseColor.h;
         
         newPoints.push({
           x: x + offsetX,
@@ -177,12 +177,12 @@ export default function CursorTrail({
     <div className={`pointer-events-none fixed inset-0 z-50 overflow-hidden ${className}`}>
       {/* Main cursor dot */}
       <motion.div
-        className="absolute rounded-full bg-primary/60 blur-sm"
+        className="absolute rounded-full bg-white/60 blur-sm"
         style={{
           left: mousePosition.x,
           top: mousePosition.y,
-          width: '10px',
-          height: '10px',
+          width: '12px',
+          height: '12px',
           transform: 'translate(-50%, -50%)',
         }}
       />
@@ -194,12 +194,12 @@ export default function CursorTrail({
         const saturation = Math.max(0, Math.min(100, baseColor.s * (1 - point.decay * 0.5))); // Desaturate as it fades
         const lightness = Math.max(0, Math.min(100, baseColor.l + (1 - point.decay) * 30)); // Get lighter as it fades
         
-        const particleColor = `hsla(${hue}, ${saturation}%, ${lightness}%, ${point.decay * 0.5})`;
+        const particleColor = `hsla(${hue}, ${saturation}%, ${lightness}%, ${point.decay * 0.7})`;
         
         return (
           <motion.div
             key={point.id}
-            className="absolute rounded-full blur-md"
+            className="absolute rounded-full blur-xl"
             style={{
               left: point.x,
               top: point.y,
