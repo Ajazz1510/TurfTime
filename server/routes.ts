@@ -474,7 +474,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ownerId: slot.ownerId
       };
 
+      // Create the booking
       const booking = await storage.createBooking(bookingData);
+      
+      // Mark the slot as booked
+      await storage.updateSlot(slot.id, { isBooked: true });
+      
+      console.log(`Booking created successfully: ID ${booking.id}, slot ${slot.id} marked as booked`);
       res.status(201).json(booking);
     } catch (error) {
       res.status(500).json({ message: "Failed to create booking" });
@@ -505,6 +511,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
       
       const updatedBooking = await storage.updateBooking(id, filteredUpdates);
+      
+      // If booking is cancelled, mark the slot as available again
+      if (filteredUpdates.status === "cancelled") {
+        const slot = await storage.getSlot(booking.slotId);
+        if (slot) {
+          await storage.updateSlot(slot.id, { isBooked: false });
+          console.log(`Booking ${id} cancelled, slot ${slot.id} marked as available`);
+        }
+      }
+      
       res.json(updatedBooking);
     } catch (error) {
       res.status(500).json({ message: "Failed to update booking" });
@@ -528,8 +544,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized to delete this booking" });
       }
       
+      // Free up the slot when booking is deleted
+      const slot = await storage.getSlot(booking.slotId);
+      
       const success = await storage.deleteBooking(id);
       if (success) {
+        // Mark the slot as available again
+        if (slot) {
+          await storage.updateSlot(slot.id, { isBooked: false });
+          console.log(`Booking ${id} deleted, slot ${slot.id} marked as available`);
+        }
+        
         res.sendStatus(204);
       } else {
         res.status(500).json({ message: "Failed to delete booking" });
