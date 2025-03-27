@@ -61,8 +61,22 @@ const slotFormSchema = z.object({
     required_error: "Please select a date",
   }),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Please enter a valid time (HH:MM)"),
-  duration: z.string().min(1, "Please select or enter duration"),
-});
+  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Please enter a valid time (HH:MM)"),
+})
+.refine(
+  (data) => {
+    if (!data.startTime || !data.endTime) return true;
+    const [startHour, startMinute] = data.startTime.split(':').map(Number);
+    const [endHour, endMinute] = data.endTime.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    return endMinutes > startMinutes;
+  },
+  {
+    message: "End time must be after start time",
+    path: ["endTime"],
+  }
+);
 
 type SlotFormValues = z.infer<typeof slotFormSchema>;
 
@@ -101,7 +115,7 @@ export default function ManageSlots() {
     defaultValues: {
       turfId: "",
       startTime: "09:00",
-      duration: "",
+      endTime: "10:00",
     },
   });
 
@@ -157,12 +171,23 @@ export default function ManageSlots() {
     setSelectedTurf(value);
     form.setValue("turfId", value);
     
-    // Set duration based on selected turf
-    if (value && turfs) {
-      const turf = turfs.find(t => t.id.toString() === value);
-      if (turf) {
-        form.setValue("duration", turf.duration.toString());
+    // Set endTime based on startTime (default 1 hour later)
+    const startTime = form.getValues("startTime");
+    if (startTime) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      let endHour = hours + 1;
+      let endMinute = minutes;
+      
+      // Handle overflow
+      if (endHour >= 24) {
+        endHour = 23;
+        endMinute = 59;
       }
+      
+      // Format the end time
+      const formattedEndHour = endHour.toString().padStart(2, '0');
+      const formattedEndMinute = endMinute.toString().padStart(2, '0');
+      form.setValue("endTime", `${formattedEndHour}:${formattedEndMinute}`);
     }
   };
 
@@ -186,14 +211,15 @@ export default function ManageSlots() {
       return;
     }
     
-    // Parse time
-    const [hours, minutes] = data.startTime.split(':').map(Number);
+    // Parse start time
+    const [startHours, startMinutes] = data.startTime.split(':').map(Number);
     const startTime = new Date(data.date);
-    startTime.setHours(hours, minutes, 0, 0);
+    startTime.setHours(startHours, startMinutes, 0, 0);
     
-    // Calculate end time
-    const endTime = new Date(startTime);
-    endTime.setMinutes(endTime.getMinutes() + parseInt(data.duration));
+    // Parse end time
+    const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+    const endTime = new Date(data.date);
+    endTime.setHours(endHours, endMinutes, 0, 0);
     
     // Create slot
     const slotData: InsertSlot = {
@@ -215,7 +241,7 @@ export default function ManageSlots() {
         form.reset({
           turfId: data.turfId,
           startTime: data.startTime,
-          duration: data.duration,
+          endTime: data.endTime,
         });
       },
       onError: () => {
@@ -226,7 +252,7 @@ export default function ManageSlots() {
 
   // Handle multiple slots generation
   const generateMultipleSlots = () => {
-    if (!user || !form.getValues("turfId") || !form.getValues("date") || !form.getValues("startTime") || !form.getValues("duration") || repeatDays < 1) {
+    if (!user || !form.getValues("turfId") || !form.getValues("date") || !form.getValues("startTime") || !form.getValues("endTime") || repeatDays < 1) {
       toast({
         title: "Missing information",
         description: "Please fill in all fields to generate slots.",
@@ -237,9 +263,8 @@ export default function ManageSlots() {
     
     setIsGeneratingSlots(true);
     
-    const { turfId, date, startTime, duration } = form.getValues();
+    const { turfId, date, startTime, endTime } = form.getValues();
     const turfIdNum = parseInt(turfId);
-    const durationNum = parseInt(duration);
     const turf = turfs?.find(t => t.id === turfIdNum);
     
     if (!turf) {
@@ -252,8 +277,9 @@ export default function ManageSlots() {
       return;
     }
     
-    // Parse time
-    const [hours, minutes] = startTime.split(':').map(Number);
+    // Parse times
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
     
     // Generate slots for each day
     const slotPromises = [];
@@ -263,10 +289,15 @@ export default function ManageSlots() {
       slotDate.setDate(slotDate.getDate() + i);
       
       const startDateTime = new Date(slotDate);
-      startDateTime.setHours(hours, minutes, 0, 0);
+      startDateTime.setHours(startHours, startMinutes, 0, 0);
       
-      const endDateTime = new Date(startDateTime);
-      endDateTime.setMinutes(endDateTime.getMinutes() + durationNum);
+      const endDateTime = new Date(slotDate);
+      endDateTime.setHours(endHours, endMinutes, 0, 0);
+      
+      // If end time is before start time, assume it's the next day
+      if (endDateTime < startDateTime) {
+        endDateTime.setDate(endDateTime.getDate() + 1);
+      }
       
       const slotData: InsertSlot = {
         ownerId: user.id,
@@ -291,7 +322,7 @@ export default function ManageSlots() {
         form.reset({
           turfId,
           startTime,
-          duration,
+          endTime,
         });
       })
       .catch((error) => {
@@ -473,31 +504,17 @@ export default function ManageSlots() {
                       
                       <FormField
                         control={form.control}
-                        name="duration"
+                        name="endTime"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Duration (minutes)</FormLabel>
+                            <FormLabel>End Time</FormLabel>
                             <FormControl>
-                              <Select
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select duration" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="30">00:30</SelectItem>
-                                  <SelectItem value="60">01:00</SelectItem>
-                                  <SelectItem value="90">01:30</SelectItem>
-                                  <SelectItem value="120">02:00</SelectItem>
-                                  <SelectItem value="150">02:30</SelectItem>
-                                  <SelectItem value="180">03:00</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <Input
+                                {...field}
+                                type="time"
+                                placeholder="HH:MM"
+                              />
                             </FormControl>
-                            <FormDescription>
-                              Duration in HH:MM format
-                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
