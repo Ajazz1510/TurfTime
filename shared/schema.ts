@@ -78,7 +78,15 @@ export const insertSlotSchema = createInsertSchema(slots, {
     typeof val === 'string' ? new Date(val) : val
   ),
 }).omit({ id: true });
-export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
+// Enhanced booking schema with more detailed validation
+export const insertBookingSchema = createInsertSchema(bookings, {
+  teamName: z.string().min(2, "Team name must be at least 2 characters"),
+  playerCount: z.number().int().positive("Player count must be a positive number"),
+  status: z.enum(bookingStatusEnum.enumValues, {
+    errorMap: () => ({ message: `Status must be one of: ${bookingStatusEnum.enumValues.join(', ')}` })
+  }),
+  notes: z.string().optional(),
+}).omit({ id: true, createdAt: true });
 
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;

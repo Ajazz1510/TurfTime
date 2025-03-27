@@ -83,10 +83,30 @@ export default function CustomerBookings() {
   // Book a slot mutation
   const createBookingMutation = useMutation({
     mutationFn: async (bookingData: InsertBooking) => {
-      const res = await apiRequest("POST", "/api/bookings", bookingData);
-      return res.json();
+      console.log("Submitting booking request with data:", JSON.stringify(bookingData));
+      
+      try {
+        const res = await apiRequest("POST", "/api/bookings", bookingData);
+        
+        // Log the response for debugging
+        console.log("Booking response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Booking error response:", errorData);
+          throw new Error(errorData.message || 'Failed to create booking');
+        }
+        
+        const data = await res.json();
+        console.log("Booking created successfully:", data);
+        return data;
+      } catch (error) {
+        console.error("Booking request error:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Booking success callback with data:", data);
       toast({
         title: "Booking confirmed!",
         description: "Your booking has been successfully created.",
@@ -98,9 +118,10 @@ export default function CustomerBookings() {
       setBookingNotes("");
     },
     onError: (error: Error) => {
+      console.error("Booking mutation error:", error);
       toast({
         title: "Booking failed",
-        description: error.message,
+        description: error.message || "There was an error creating your booking. Please try again.",
         variant: "destructive",
       });
     }

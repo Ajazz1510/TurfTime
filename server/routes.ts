@@ -438,21 +438,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/bookings", isCustomer, async (req, res) => {
     try {
+      console.log("Received booking request:", JSON.stringify(req.body));
+      
+      // Validate the booking data
       const validation = insertBookingSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ message: "Invalid booking data", errors: validation.error.format() });
+        console.error("Booking validation failed:", validation.error.format());
+        return res.status(400).json({ 
+          message: "Invalid booking data", 
+          errors: validation.error.format() 
+        });
       }
+      console.log("Booking validation successful");
 
       // Ensure customerId matches the authenticated user
       if (req.body.customerId !== req.user.id) {
+        console.error(`Customer ID mismatch: ${req.body.customerId} vs ${req.user.id}`);
         return res.status(403).json({ message: "Unauthorized, customer ID mismatch" });
       }
 
       // Verify slot exists and is available
       const slot = await storage.getSlot(req.body.slotId);
       if (!slot) {
+        console.error(`Slot not found: ${req.body.slotId}`);
         return res.status(404).json({ message: "Slot not found" });
       }
+      
+      console.log(`Slot found: ${slot.id}, isBooked: ${slot.isBooked}`);
       if (slot.isBooked) {
         return res.status(400).json({ message: "Slot is already booked" });
       }
@@ -460,11 +472,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify turf exists
       const turf = await storage.getTurf(req.body.turfId);
       if (!turf) {
+        console.error(`Turf not found: ${req.body.turfId}`);
         return res.status(404).json({ message: "Turf not found" });
       }
+      console.log(`Turf found: ${turf.id}, name: ${turf.name}`);
 
       // Ensure slot and turf belong to the same owner
       if (slot.ownerId !== turf.ownerId || slot.turfId !== turf.id) {
+        console.error(`Slot and turf mismatch: slot.ownerId=${slot.ownerId}, turf.ownerId=${turf.ownerId}, slot.turfId=${slot.turfId}, turf.id=${turf.id}`);
         return res.status(400).json({ message: "Slot and turf mismatch" });
       }
 
@@ -473,17 +488,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         ownerId: slot.ownerId
       };
+      console.log("Final booking data:", JSON.stringify(bookingData));
 
       // Create the booking
       const booking = await storage.createBooking(bookingData);
+      console.log(`Booking created successfully: ID ${booking.id}`);
       
       // Mark the slot as booked
       await storage.updateSlot(slot.id, { isBooked: true });
+      console.log(`Slot ${slot.id} marked as booked`);
       
-      console.log(`Booking created successfully: ID ${booking.id}, slot ${slot.id} marked as booked`);
       res.status(201).json(booking);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create booking" });
+      console.error("Error creating booking:", error);
+      res.status(500).json({ message: "Failed to create booking", error: String(error) });
     }
   });
 
