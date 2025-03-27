@@ -191,8 +191,28 @@ export class PostgresStorage implements IStorage {
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
     // Start a transaction to handle slot booking atomically
     const result = await db.transaction(async (tx) => {
-      // Create the booking
-      const booking = (await tx.insert(bookings).values(bookingData).returning())[0];
+      // Create a new object to hold the processed data
+      const processedData: any = { ...bookingData };
+      
+      // Make sure date fields are properly formatted as strings
+      if (bookingData.bookingStartTime) {
+        // Convert to ISO string if needed
+        processedData.bookingStartTime = typeof bookingData.bookingStartTime === 'object' && 
+                                         bookingData.bookingStartTime.toISOString
+                                         ? bookingData.bookingStartTime.toISOString()
+                                         : bookingData.bookingStartTime;
+      }
+      
+      if (bookingData.bookingEndTime) {
+        // Convert to ISO string if needed
+        processedData.bookingEndTime = typeof bookingData.bookingEndTime === 'object' && 
+                                       bookingData.bookingEndTime.toISOString
+                                       ? bookingData.bookingEndTime.toISOString()
+                                       : bookingData.bookingEndTime;
+      }
+      
+      // Create the booking with processed data
+      const booking = (await tx.insert(bookings).values(processedData).returning())[0];
       
       // Update the slot to be booked
       await tx.update(slots)
@@ -206,8 +226,28 @@ export class PostgresStorage implements IStorage {
   }
   
   async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | undefined> {
+    // Create a new object to hold the processed data
+    const processedData: any = { ...bookingData };
+      
+    // Make sure date fields are properly formatted as strings
+    if (bookingData.bookingStartTime) {
+      // Convert to ISO string if needed
+      processedData.bookingStartTime = typeof bookingData.bookingStartTime === 'object' && 
+                                       bookingData.bookingStartTime.toISOString
+                                       ? bookingData.bookingStartTime.toISOString()
+                                       : bookingData.bookingStartTime;
+    }
+    
+    if (bookingData.bookingEndTime) {
+      // Convert to ISO string if needed
+      processedData.bookingEndTime = typeof bookingData.bookingEndTime === 'object' && 
+                                     bookingData.bookingEndTime.toISOString
+                                     ? bookingData.bookingEndTime.toISOString()
+                                     : bookingData.bookingEndTime;
+    }
+    
     // If status is being updated to cancelled, free up the slot
-    if (bookingData.status === "cancelled") {
+    if (processedData.status === "cancelled") {
       return await db.transaction(async (tx) => {
         // Get the booking to find the slot
         const bookingResult = await tx.select().from(bookings).where(eq(bookings.id, id));
@@ -217,7 +257,7 @@ export class PostgresStorage implements IStorage {
         
         // Update the booking
         const updatedBooking = (await tx.update(bookings)
-          .set(bookingData)
+          .set(processedData)
           .where(eq(bookings.id, id))
           .returning())[0];
         
@@ -231,7 +271,7 @@ export class PostgresStorage implements IStorage {
     } else {
       // Simple update without changing slot status
       const result = await db.update(bookings)
-        .set(bookingData)
+        .set(processedData)
         .where(eq(bookings.id, id))
         .returning();
       return result[0];
@@ -394,14 +434,17 @@ export class PostgresStorage implements IStorage {
         // Create a sample booking for cricket
         const cricketSlots = await this.getAvailableSlots(owner.id, cricketTurf.id);
         if (cricketSlots.length > 0) {
+          const slot = cricketSlots[0];
           await this.createBooking({
             customerId: customer.id,
             ownerId: owner.id,
             turfId: cricketTurf.id,
-            slotId: cricketSlots[0].id,
+            slotId: slot.id,
             status: "confirmed",
             teamName: "Chennai Stars",
             playerCount: 16,
+            bookingStartTime: slot.startTime.toISOString(),
+            bookingEndTime: slot.endTime.toISOString(),
             notes: "Weekend match practice"
           });
         }
@@ -409,14 +452,17 @@ export class PostgresStorage implements IStorage {
         // Create a sample booking for football
         const footballSlots = await this.getAvailableSlots(owner.id, footballTurf.id);
         if (footballSlots.length > 0) {
+          const slot = footballSlots[0];
           await this.createBooking({
             customerId: customer.id,
             ownerId: owner.id,
             turfId: footballTurf.id,
-            slotId: footballSlots[0].id,
+            slotId: slot.id,
             status: "confirmed",
             teamName: "United FC",
             playerCount: 10,
+            bookingStartTime: slot.startTime.toISOString(),
+            bookingEndTime: slot.endTime.toISOString(),
             notes: "Regular practice session"
           });
         }
