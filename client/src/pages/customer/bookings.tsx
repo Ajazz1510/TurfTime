@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Slot, Turf, InsertBooking, sportTypeEnum } from "@shared/schema";
+import { Slot, Turf, InsertBooking, BookingRequest, sportTypeEnum } from "@shared/schema";
 import { Clock, Calendar, Search, MapPin, IndianRupee, User, Loader2, Zap } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -113,7 +113,7 @@ export default function CustomerBookings() {
 
   // Book a slot mutation
   const createBookingMutation = useMutation({
-    mutationFn: async (bookingData: InsertBooking) => {
+    mutationFn: async (bookingData: any) => {
       console.log("Submitting booking request with data:", JSON.stringify(bookingData));
       
       try {
@@ -166,10 +166,33 @@ export default function CustomerBookings() {
     if (!turf) return;
     
     // Use custom selected times or default to slot's start/end times
-    const bookingStartTime = selectedStartTime || new Date(selectedSlot.startTime);
-    const bookingEndTime = selectedEndTime || new Date(selectedSlot.endTime);
+    let bookingStartTime = selectedStartTime || new Date(selectedSlot.startTime);
+    let bookingEndTime = selectedEndTime || new Date(selectedSlot.endTime);
     
-    const bookingData: InsertBooking = {
+    // Make sure we're using actual Date objects
+    if (!(bookingStartTime instanceof Date)) {
+      bookingStartTime = new Date(bookingStartTime);
+    }
+    
+    if (!(bookingEndTime instanceof Date)) {
+      bookingEndTime = new Date(bookingEndTime);
+    }
+    
+    // Make sure the dates are valid
+    if (isNaN(bookingStartTime.getTime()) || isNaN(bookingEndTime.getTime())) {
+      toast({
+        title: "Invalid booking time",
+        description: "The selected start or end time is invalid.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Convert to ISO strings
+    const startTimeISO = bookingStartTime.toISOString();
+    const endTimeISO = bookingEndTime.toISOString();
+    
+    const bookingData = {
       customerId: user.id,
       ownerId: selectedSlot.ownerId,
       turfId: selectedTurf,
@@ -178,8 +201,8 @@ export default function CustomerBookings() {
       playerCount: playerCount,
       notes: bookingNotes,
       status: "confirmed",
-      bookingStartTime,
-      bookingEndTime
+      bookingStartTime: startTimeISO,
+      bookingEndTime: endTimeISO
     };
     
     console.log("Creating booking with data:", bookingData);

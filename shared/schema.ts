@@ -80,19 +80,25 @@ export const insertSlotSchema = createInsertSchema(slots, {
     typeof val === 'string' ? new Date(val) : val
   ),
 }).omit({ id: true });
-// Enhanced booking schema with more detailed validation
+// Enhanced booking schema with more detailed validation and better date handling
 export const insertBookingSchema = createInsertSchema(bookings, {
   teamName: z.string().min(2, "Team name must be at least 2 characters"),
   playerCount: z.number().int().positive("Player count must be a positive number"),
   status: z.enum(bookingStatusEnum.enumValues, {
     errorMap: () => ({ message: `Status must be one of: ${bookingStatusEnum.enumValues.join(', ')}` })
   }),
-  bookingStartTime: z.string().or(z.date()).transform(val => 
-    typeof val === 'string' ? new Date(val) : val
-  ).optional(),
-  bookingEndTime: z.string().or(z.date()).transform(val => 
-    typeof val === 'string' ? new Date(val) : val
-  ).optional(),
+  bookingStartTime: z.union([
+    z.string().refine(val => !isNaN(Date.parse(val)), {
+      message: "Invalid date format for booking start time"
+    }).transform(val => new Date(val).toISOString()),
+    z.date().transform(val => val.toISOString())
+  ]),
+  bookingEndTime: z.union([
+    z.string().refine(val => !isNaN(Date.parse(val)), {
+      message: "Invalid date format for booking end time"
+    }).transform(val => new Date(val).toISOString()),
+    z.date().transform(val => val.toISOString())
+  ]),
   notes: z.string().optional(),
 }).omit({ id: true, createdAt: true });
 
@@ -101,6 +107,12 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertTurf = z.infer<typeof insertTurfSchema>;
 export type InsertSlot = z.infer<typeof insertSlotSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
+
+// Convenience booking type with string dates for API calls
+export type BookingRequest = Omit<InsertBooking, 'bookingStartTime' | 'bookingEndTime'> & {
+  bookingStartTime: string;
+  bookingEndTime: string;
+};
 
 // Select types
 export type User = typeof users.$inferSelect;
