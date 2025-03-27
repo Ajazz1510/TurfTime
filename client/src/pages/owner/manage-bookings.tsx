@@ -123,7 +123,15 @@ export default function ManageBookings() {
     if (!slots) return "Loading...";
     const slot = slots.find(s => s.id === slotId);
     if (!slot) return "Unknown Time";
-    return `${format(parseISO(slot.startTime), 'h:mm a')} - ${format(parseISO(slot.endTime), 'h:mm a')}`;
+    
+    const durationMinutes = Math.round(
+      (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60000
+    );
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    const durationFormatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    
+    return `${format(new Date(slot.startTime), 'h:mm a')} - ${format(new Date(slot.endTime), 'h:mm a')} (${durationFormatted})`;
   };
 
   // Get slot date by ID
@@ -131,7 +139,7 @@ export default function ManageBookings() {
     if (!slots) return "Loading...";
     const slot = slots.find(s => s.id === slotId);
     if (!slot) return "Unknown Date";
-    return format(parseISO(slot.startTime), 'MMMM d, yyyy');
+    return format(new Date(slot.startTime), 'MMMM d, yyyy');
   };
 
   // Handle booking update

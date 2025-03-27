@@ -478,14 +478,26 @@ export default function ManageSlots() {
                           <FormItem>
                             <FormLabel>Duration (minutes)</FormLabel>
                             <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                min="15"
-                                step="15"
-                                placeholder="60"
-                              />
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select duration" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="30">00:30</SelectItem>
+                                  <SelectItem value="60">01:00</SelectItem>
+                                  <SelectItem value="90">01:30</SelectItem>
+                                  <SelectItem value="120">02:00</SelectItem>
+                                  <SelectItem value="150">02:30</SelectItem>
+                                  <SelectItem value="180">03:00</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </FormControl>
+                            <FormDescription>
+                              Duration in HH:MM format
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -638,9 +650,14 @@ export default function ManageSlots() {
                                 <TableCell>{format(new Date(slot.startTime), 'h:mm a')}</TableCell>
                                 <TableCell>{format(new Date(slot.endTime), 'h:mm a')}</TableCell>
                                 <TableCell>
-                                  {Math.round(
-                                    (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60000
-                                  )} min
+                                  {(() => {
+                                    const durationMinutes = Math.round(
+                                      (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60000
+                                    );
+                                    const hours = Math.floor(durationMinutes / 60);
+                                    const minutes = durationMinutes % 60;
+                                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                                  })()}
                                 </TableCell>
                                 <TableCell>
                                   {slot.isBooked ? (

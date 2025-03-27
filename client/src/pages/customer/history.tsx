@@ -101,7 +101,14 @@ export default function CustomerHistory() {
             <div className="flex items-center">
               <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
               <span className="text-sm">
-                Slot booked for {format(new Date(booking.date), 'MMMM d, yyyy')}{booking.time && ` at ${booking.time}`}
+                {booking.slot && `Slot booked for ${format(new Date(booking.slot.startTime), 'MMMM d, yyyy')} at ${format(new Date(booking.slot.startTime), 'h:mm a')} - ${format(new Date(booking.slot.endTime), 'h:mm a')} (${(() => {
+                  const durationMinutes = Math.round(
+                    (new Date(booking.slot.endTime).getTime() - new Date(booking.slot.startTime).getTime()) / 60000
+                  );
+                  const hours = Math.floor(durationMinutes / 60);
+                  const minutes = durationMinutes % 60;
+                  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                })()})`}
               </span>
             </div>
           )}
