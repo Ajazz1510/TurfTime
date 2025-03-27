@@ -118,15 +118,34 @@ export default function AuthPage() {
   const showBusinessFields = registerForm.watch("role") === "owner";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AppHeader className="bg-white" />
+    <div className="min-h-screen bg-black flex flex-col">
+      <AppHeader className="bg-transparent text-white" />
       <div className="flex flex-1 flex-col md:flex-row">
+        {/* Animated background */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-green-950 opacity-90"></div>
+          
+          {/* Grain texture overlay */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjA1Ii8+PC9zdmc+')] opacity-20"></div>
+          
+          {/* Animated elements */}
+          <div className="absolute w-12 h-12 rounded-full border-2 border-green-500/20 animate-float opacity-20"
+            style={{ top: '20%', left: '15%', animationDelay: '0.5s' }}></div>
+          <div className="absolute w-8 h-8 rounded-full bg-green-500/10 animate-float-slow opacity-10"
+            style={{ top: '60%', right: '10%', animationDelay: '1s' }}></div>
+          <div className="absolute w-6 h-6 transform rotate-45 border-t-2 border-l-2 border-green-400/10 animate-pulse-slow opacity-20"
+            style={{ bottom: '15%', left: '20%', animationDelay: '2.5s' }}></div>
+          <div className="absolute h-px w-40 bg-gradient-to-r from-transparent via-green-500/20 to-transparent animate-pulse-slow" 
+            style={{ top: '40%', right: '15%', animationDelay: '1.7s' }}></div>
+        </div>
+        
         {/* Form section */}
-        <div className="w-full md:w-1/2 py-10 px-5 md:px-10 flex flex-col justify-center">
+        <div className="w-full md:w-1/2 py-10 px-5 md:px-10 flex flex-col justify-center relative z-10">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-10 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">TurfTime</h1>
-            <p className="text-gray-600">Sign in or create an account to get started</p>
+            <h1 className="text-3xl font-bold text-white mb-2">TurfTime</h1>
+            <p className="text-gray-400">Sign in or create an account to get started</p>
           </div>
           
           <Tabs defaultValue="login" value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
@@ -400,9 +419,42 @@ export default function AuthPage() {
       </div>
       
       {/* Hero section */}
-      <div className="w-full md:w-1/2 bg-primary hidden md:flex flex-col justify-center items-center px-5 md:px-10">
-        <div className="max-w-lg text-center text-white">
-          <h2 className="text-3xl font-bold mb-4">Streamline Your Booking Experience</h2>
+      <div className="w-full md:w-1/2 bg-gradient-to-br from-green-900 to-primary hidden md:flex flex-col justify-center items-center px-5 md:px-10 relative overflow-hidden">
+        {/* Animated sport shapes */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Field lines */}
+          <div className="absolute h-px w-60 bg-gradient-to-r from-transparent via-green-400/20 to-transparent animate-pulse-slow" 
+            style={{ top: '20%', right: '5%', animationDelay: '0.7s' }}></div>
+          <div className="absolute h-px w-40 bg-gradient-to-r from-transparent via-green-400/20 to-transparent animate-pulse-slow" 
+            style={{ bottom: '30%', left: '10%', animationDelay: '1.2s' }}></div>
+          
+          {/* Sport icon - Cricket */}
+          <div className="absolute top-[15%] left-[10%] transform -rotate-12 opacity-20">
+            <svg className="w-20 h-20 text-white animate-float" style={{ animationDelay: '0.2s' }} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2v4m0 16v-4m10-10h-4M6 12H2"></path>
+              <path d="M4.9 4.9l2.8 2.8m8.4 8.4l2.8 2.8m0-14l-2.8 2.8m-8.4 8.4L4.9 19.1"></path>
+            </svg>
+          </div>
+          
+          {/* Sport icon - Football */}
+          <div className="absolute bottom-[20%] right-[15%] opacity-20">
+            <svg className="w-24 h-24 text-white animate-float-slow" style={{ animationDelay: '1.5s' }} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 7l4.76 3.45 1.82-5.57-5.49 1.37L7.76 2l-.53 5.73L2 10.38l5.12 2.35L5.24 18 12 15.46 18.77 18l-1.88-5.27 5.12-2.35-5.23-2.65-.53-5.73-5.49 4.25z"></path>
+            </svg>
+          </div>
+          
+          {/* Sport icon - Badminton */}
+          <div className="absolute top-[45%] right-[25%] transform rotate-45 opacity-15">
+            <svg className="w-16 h-16 text-white animate-float" style={{ animationDelay: '3s' }} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3L7 13m7 8l5-15M4 17l9-9m-1 13L7 13"></path>
+            </svg>
+          </div>
+        </div>
+        
+        <div className="max-w-lg text-center text-white relative z-10">
+          <h2 className="text-4xl font-bold mb-4 text-shadow">Streamline Your Booking Experience</h2>
           <p className="text-lg mb-6">
             TurfTime is a specialized platform for booking sports facilities including cricket, football, and badminton turfs, providing seamless management for turf owners and players.
           </p>

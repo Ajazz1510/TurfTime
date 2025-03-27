@@ -11,6 +11,31 @@ export default function Hero() {
       {/* Grain texture overlay */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjA1Ii8+PC9zdmc+')] opacity-20"></div>
       
+      {/* Animated elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Football */}
+        <div className="absolute w-12 h-12 rounded-full border-2 border-green-500/30 animate-float opacity-30"
+          style={{ top: '15%', left: '10%', animationDelay: '0s' }}></div>
+        
+        {/* Cricket ball */}
+        <div className="absolute w-8 h-8 rounded-full bg-green-500/20 animate-float-slow opacity-20"
+          style={{ top: '45%', right: '15%', animationDelay: '1.5s' }}></div>
+          
+        {/* Badminton shuttlecock */}
+        <div className="absolute w-6 h-6 transform rotate-45 border-t-2 border-l-2 border-green-400/20 animate-pulse-slow opacity-30"
+          style={{ bottom: '25%', left: '25%', animationDelay: '2s' }}></div>
+          
+        {/* Field lines */}
+        <div className="absolute h-px w-40 bg-gradient-to-r from-transparent via-green-500/30 to-transparent animate-pulse-slow" 
+          style={{ top: '30%', right: '10%', animationDelay: '0.7s' }}></div>
+        <div className="absolute h-px w-20 bg-gradient-to-r from-transparent via-green-500/20 to-transparent animate-pulse-slow" 
+          style={{ bottom: '40%', left: '5%', animationDelay: '1.2s' }}></div>
+          
+        {/* Court boundary */}
+        <div className="absolute w-40 h-40 border border-green-600/10 rounded-lg animate-spin-slow opacity-20"
+          style={{ top: '10%', right: '20%', animationDelay: '3s' }}></div>
+      </div>
+      
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="py-16 md:py-24 lg:py-32">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -21,10 +46,10 @@ export default function Hero() {
                     <span className="mr-2">⚽️</span> Book your turf now
                   </div>
                   
-                  <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-6xl xl:text-7xl">
+                  <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-6xl xl:text-7xl text-shadow">
                     <span className="block pb-2">Book Your</span>
                     <span className="block">
-                      <span className="text-primary">Turf</span>
+                      <span className="text-primary text-shadow-green">Turf</span>
                       <span>time</span>
                     </span>
                   </h1>
