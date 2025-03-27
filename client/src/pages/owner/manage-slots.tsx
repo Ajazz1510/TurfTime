@@ -192,8 +192,8 @@ export default function ManageSlots() {
     const slotData: InsertSlot = {
       ownerId: user.id,
       turfId,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
+      startTime: startTime,
+      endTime: endTime,
       isBooked: false,
     };
     
@@ -264,8 +264,8 @@ export default function ManageSlots() {
       const slotData: InsertSlot = {
         ownerId: user.id,
         turfId: turfIdNum,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
+        startTime: startDateTime,
+        endTime: endDateTime,
         isBooked: false,
       };
       
