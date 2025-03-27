@@ -52,6 +52,35 @@ const getDefaultPlayerCount = (sportType: string): number => {
   }
 };
 
+// Helper function to generate time options in 30-minute intervals
+const generateTimeOptions = (startTime: Date, endTime: Date, intervalMinutes: number = 30): string[] => {
+  const options: string[] = [];
+  const currentTime = new Date(startTime);
+  
+  while (currentTime < endTime) {
+    const hours = currentTime.getHours().toString().padStart(2, '0');
+    const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+    options.push(`${hours}:${minutes}`);
+    
+    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
+  }
+  
+  // Add the end time as the last option
+  const endHours = endTime.getHours().toString().padStart(2, '0');
+  const endMinutes = endTime.getMinutes().toString().padStart(2, '0');
+  options.push(`${endHours}:${endMinutes}`);
+  
+  return options;
+};
+
+// Helper function to format time option for display
+const formatTimeOption = (timeString: string): string => {
+  const [hours, minutes] = timeString.split(':');
+  const date = new Date();
+  date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+  return format(date, 'h:mm a');
+};
+
 export default function CustomerBookings() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -64,6 +93,8 @@ export default function CustomerBookings() {
   const [teamName, setTeamName] = useState(`Team ${user?.username || "Player"}`);
   const [playerCount, setPlayerCount] = useState<number>(8);
   const [activeTab, setActiveTab] = useState("turfs");
+  const [selectedStartTime, setSelectedStartTime] = useState<Date | undefined>(undefined);
+  const [selectedEndTime, setSelectedEndTime] = useState<Date | undefined>(undefined);
 
   // Fetch all turfs
   const { data: turfs, isLoading: turfsLoading } = useQuery<Turf[]>({
@@ -134,6 +165,10 @@ export default function CustomerBookings() {
     const turf = turfs?.find(t => t.id === selectedTurf);
     if (!turf) return;
     
+    // Use custom selected times or default to slot's start/end times
+    const bookingStartTime = selectedStartTime || new Date(selectedSlot.startTime);
+    const bookingEndTime = selectedEndTime || new Date(selectedSlot.endTime);
+    
     const bookingData: InsertBooking = {
       customerId: user.id,
       ownerId: selectedSlot.ownerId,
@@ -142,7 +177,9 @@ export default function CustomerBookings() {
       teamName: teamName,
       playerCount: playerCount,
       notes: bookingNotes,
-      status: "confirmed"
+      status: "confirmed",
+      bookingStartTime,
+      bookingEndTime
     };
     
     console.log("Creating booking with data:", bookingData);
@@ -423,10 +460,104 @@ export default function CustomerBookings() {
                           {format(new Date(selectedSlot.startTime), 'MMMM d, yyyy')}
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <Label>Time</Label>
+                      <div className="space-y-3">
+                        <Label>Available Time Range</Label>
                         <div className="font-medium">
                           {format(new Date(selectedSlot.startTime), 'h:mm a')} - {format(new Date(selectedSlot.endTime), 'h:mm a')}
+                        </div>
+                        
+                        <div className="pt-2">
+                          <Label>Select Your Booking Time</Label>
+                          <div className="grid grid-cols-2 gap-4 mt-2">
+                            <div>
+                              <Label htmlFor="start-time" className="text-xs">Start Time</Label>
+                              <Select 
+                                value={selectedStartTime ? format(selectedStartTime, 'HH:mm') : format(new Date(selectedSlot.startTime), 'HH:mm')}
+                                onValueChange={(time: string) => {
+                                  const [hours, minutes] = time.split(':').map(Number);
+                                  const newDate = new Date(selectedSlot.startTime);
+                                  newDate.setHours(hours, minutes);
+                                  setSelectedStartTime(newDate);
+                                }}
+                              >
+                                <SelectTrigger id="start-time">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(() => {
+                                    const options = [];
+                                    const start = new Date(selectedSlot.startTime);
+                                    const end = new Date(selectedSlot.endTime);
+                                    const currentTime = new Date(start);
+                                    
+                                    while (currentTime < end) {
+                                      const timeStr = format(currentTime, 'HH:mm');
+                                      options.push(
+                                        <SelectItem key={`start-${timeStr}`} value={timeStr}>
+                                          {format(currentTime, 'h:mm a')}
+                                        </SelectItem>
+                                      );
+                                      currentTime.setMinutes(currentTime.getMinutes() + 30);
+                                    }
+                                    
+                                    // Add the end time as the last option
+                                    const endTimeStr = format(end, 'HH:mm');
+                                    options.push(
+                                      <SelectItem key={`start-${endTimeStr}`} value={endTimeStr}>
+                                        {format(end, 'h:mm a')}
+                                      </SelectItem>
+                                    );
+                                    
+                                    return options;
+                                  })()}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="end-time" className="text-xs">End Time</Label>
+                              <Select 
+                                value={selectedEndTime ? format(selectedEndTime, 'HH:mm') : format(new Date(selectedSlot.endTime), 'HH:mm')}
+                                onValueChange={(time: string) => {
+                                  const [hours, minutes] = time.split(':').map(Number);
+                                  const newDate = new Date(selectedSlot.startTime);
+                                  newDate.setHours(hours, minutes);
+                                  setSelectedEndTime(newDate);
+                                }}
+                              >
+                                <SelectTrigger id="end-time">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(() => {
+                                    const options = [];
+                                    const start = selectedStartTime || new Date(selectedSlot.startTime);
+                                    const end = new Date(selectedSlot.endTime);
+                                    const currentTime = new Date(start);
+                                    
+                                    while (currentTime < end) {
+                                      const timeStr = format(currentTime, 'HH:mm');
+                                      options.push(
+                                        <SelectItem key={`end-${timeStr}`} value={timeStr}>
+                                          {format(currentTime, 'h:mm a')}
+                                        </SelectItem>
+                                      );
+                                      currentTime.setMinutes(currentTime.getMinutes() + 30);
+                                    }
+                                    
+                                    // Add the end time as the last option
+                                    const endTimeStr = format(end, 'HH:mm');
+                                    options.push(
+                                      <SelectItem key={`end-${endTimeStr}`} value={endTimeStr}>
+                                        {format(end, 'h:mm a')}
+                                      </SelectItem>
+                                    );
+                                    
+                                    return options;
+                                  })()}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -434,8 +565,10 @@ export default function CustomerBookings() {
                     <div className="space-y-1">
                       <Label>Sport Type</Label>
                       <div className="font-medium">
-                        {turfs?.find(t => t.id === selectedTurf)?.sportType.charAt(0).toUpperCase() + 
-                         turfs?.find(t => t.id === selectedTurf)?.sportType.slice(1) || 'Unknown'}
+                        {(() => {
+                          const sportType = turfs?.find(t => t.id === selectedTurf)?.sportType || '';
+                          return sportType ? sportType.charAt(0).toUpperCase() + sportType.slice(1) : 'Unknown';
+                        })()}
                       </div>
                     </div>
                     

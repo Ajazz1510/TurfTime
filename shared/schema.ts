@@ -62,6 +62,8 @@ export const bookings = pgTable("bookings", {
   status: bookingStatusEnum("status").notNull().default("pending"), 
   teamName: text("team_name").notNull(), // Team name is required for turf bookings
   playerCount: integer("player_count").notNull(), // Number of players in booking
+  bookingStartTime: timestamp("booking_start_time"), // Custom start time within the slot
+  bookingEndTime: timestamp("booking_end_time"), // Custom end time within the slot
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -85,6 +87,12 @@ export const insertBookingSchema = createInsertSchema(bookings, {
   status: z.enum(bookingStatusEnum.enumValues, {
     errorMap: () => ({ message: `Status must be one of: ${bookingStatusEnum.enumValues.join(', ')}` })
   }),
+  bookingStartTime: z.string().or(z.date()).transform(val => 
+    typeof val === 'string' ? new Date(val) : val
+  ).optional(),
+  bookingEndTime: z.string().or(z.date()).transform(val => 
+    typeof val === 'string' ? new Date(val) : val
+  ).optional(),
   notes: z.string().optional(),
 }).omit({ id: true, createdAt: true });
 
