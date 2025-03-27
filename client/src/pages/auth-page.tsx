@@ -45,7 +45,6 @@ const registerFormSchema = z.object({
     required_error: "Please select a role",
   }),
   businessName: z.string().optional(),
-  businessType: z.string().optional(),
   phone: z.string().optional(),
   terms: z.boolean().refine((val) => val === true, {
     message: "You must agree to the terms and conditions",
@@ -55,14 +54,14 @@ const registerFormSchema = z.object({
   path: ["confirmPassword"],
 }).refine(
   (data) => {
-    // If role is owner, businessName and businessType are required
+    // If role is owner, businessName is required
     if (data.role === "owner") {
-      return !!data.businessName && !!data.businessType;
+      return !!data.businessName;
     }
     return true;
   },
   {
-    message: "Business information is required for business owners",
+    message: "Turf business name is required for turf owners",
     path: ["businessName"],
   }
 );
@@ -99,7 +98,6 @@ export default function AuthPage() {
       fullName: "",
       role: "customer",
       businessName: "",
-      businessType: "",
       phone: "",
       terms: false,
     },
@@ -124,7 +122,7 @@ export default function AuthPage() {
       <div className="w-full md:w-1/2 py-10 px-5 md:px-10 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-10 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">BookEasy</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">TurfTime</h1>
             <p className="text-gray-600">Sign in or create an account to get started</p>
           </div>
           
@@ -305,8 +303,8 @@ export default function AuthPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="customer">Customer</SelectItem>
-                                <SelectItem value="owner">Business Owner</SelectItem>
+                                <SelectItem value="customer">Player</SelectItem>
+                                <SelectItem value="owner">Turf Owner</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -315,51 +313,19 @@ export default function AuthPage() {
                       />
                       
                       {showBusinessFields && (
-                        <>
-                          <FormField
-                            control={registerForm.control}
-                            name="businessName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Business Name</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Acme Salon" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={registerForm.control}
-                            name="businessType"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Business Type</FormLabel>
-                                <Select 
-                                  onValueChange={field.onChange} 
-                                  defaultValue={field.value}
-                                  value={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select business type" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="salon">Salon / Spa</SelectItem>
-                                    <SelectItem value="healthcare">Healthcare</SelectItem>
-                                    <SelectItem value="fitness">Fitness / Gym</SelectItem>
-                                    <SelectItem value="restaurant">Restaurant</SelectItem>
-                                    <SelectItem value="professional">Professional Services</SelectItem>
-                                    <SelectItem value="other">Other</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </>
+                        <FormField
+                          control={registerForm.control}
+                          name="businessName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Turf Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Sports Arena" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
                       
                       <FormField
@@ -435,26 +401,26 @@ export default function AuthPage() {
         <div className="max-w-lg text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Streamline Your Booking Experience</h2>
           <p className="text-lg mb-6">
-            BookEasy is a powerful platform that streamlines booking management for businesses and provides a seamless experience for customers.
+            TurfTime is a specialized platform for booking sports facilities including cricket, football, and badminton turfs, providing seamless management for turf owners and players.
           </p>
           <div className="space-y-4">
             <div className="flex items-center">
               <svg className="h-6 w-6 mr-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <p>Easy appointment scheduling</p>
+              <p>Book cricket, football, and badminton turfs</p>
             </div>
             <div className="flex items-center">
               <svg className="h-6 w-6 mr-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <p>Automated reminders</p>
+              <p>Instant slot confirmation</p>
             </div>
             <div className="flex items-center">
               <svg className="h-6 w-6 mr-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <p>Business analytics</p>
+              <p>Turf owner dashboard</p>
             </div>
             <div className="flex items-center">
               <svg className="h-6 w-6 mr-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
