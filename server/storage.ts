@@ -270,69 +270,115 @@ export class MemStorage implements IStorage {
       phone: "555-987-6543"
     });
     
-    // Create some services
-    const haircut = await this.createService({
+    // Create some turf services for different sports
+    const cricketTurf = await this.createService({
       ownerId: 1, // Owner user
-      name: "Haircut",
-      description: "Standard haircut service",
-      duration: 30,
-      price: 2500 // $25.00
+      name: "Cricket Pitch",
+      description: "Standard cricket turf with quality pitch",
+      sportType: "cricket",
+      maxPlayers: 22,
+      duration: 120, // 2 hours
+      price: 5000 // $50.00
     });
     
-    const coloring = await this.createService({
+    const footballTurf = await this.createService({
       ownerId: 1,
-      name: "Hair Coloring",
-      description: "Full hair coloring service",
-      duration: 90,
-      price: 7500 // $75.00
+      name: "Football Ground",
+      description: "Full-size football turf with artificial grass",
+      sportType: "football",
+      maxPlayers: 14,
+      duration: 60, // 1 hour
+      price: 4000 // $40.00
     });
     
-    // Create some slots
+    const badmintonTurf = await this.createService({
+      ownerId: 1,
+      name: "Badminton Court",
+      description: "Indoor badminton court with proper lighting",
+      sportType: "badminton",
+      maxPlayers: 4,
+      duration: 60, // 1 hour
+      price: 2000 // $20.00
+    });
+    
+    // Create slots for cricket turf
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
+    tomorrow.setHours(6, 0, 0, 0); // Start early for cricket
     
-    for (let i = 0; i < 8; i++) {
+    // Cricket slots (2-hour slots from 6am to 8pm)
+    for (let i = 0; i < 7; i++) {
+      const startTime = new Date(tomorrow);
+      startTime.setHours(6 + i * 2, 0, 0, 0);
+      
+      const endTime = new Date(startTime);
+      endTime.setMinutes(endTime.getMinutes() + 120); // 2 hour slots
+      
+      await this.createSlot({
+        ownerId: 1,
+        serviceId: cricketTurf.id,
+        startTime,
+        endTime,
+        isBooked: false
+      });
+    }
+    
+    // Football slots (1-hour slots from 8am to 10pm)
+    for (let i = 0; i < 14; i++) {
+      const startTime = new Date(tomorrow);
+      startTime.setHours(8 + Math.floor(i / 2), (i % 2) * 30, 0, 0);
+      
+      const endTime = new Date(startTime);
+      endTime.setMinutes(endTime.getMinutes() + 60); // 1 hour slots
+      
+      await this.createSlot({
+        ownerId: 1,
+        serviceId: footballTurf.id,
+        startTime,
+        endTime,
+        isBooked: false
+      });
+    }
+    
+    // Badminton slots (1-hour slots from 9am to 11pm)
+    for (let i = 0; i < 14; i++) {
       const startTime = new Date(tomorrow);
       startTime.setHours(9 + Math.floor(i / 2), (i % 2) * 30, 0, 0);
       
       const endTime = new Date(startTime);
-      endTime.setMinutes(endTime.getMinutes() + 30);
+      endTime.setMinutes(endTime.getMinutes() + 60); // 1 hour slots
       
       await this.createSlot({
         ownerId: 1,
-        serviceId: haircut.id,
+        serviceId: badmintonTurf.id,
         startTime,
         endTime,
         isBooked: false
       });
     }
     
-    // Create some coloring slots
-    for (let i = 0; i < 4; i++) {
-      const startTime = new Date(tomorrow);
-      startTime.setHours(10 + i * 2, 0, 0, 0);
-      
-      const endTime = new Date(startTime);
-      endTime.setMinutes(endTime.getMinutes() + 90);
-      
-      await this.createSlot({
-        ownerId: 1,
-        serviceId: coloring.id,
-        startTime,
-        endTime,
-        isBooked: false
-      });
-    }
-    
-    // Create a booking
+    // Create a booking for cricket
     await this.createBooking({
       customerId: 2, // Customer user
       ownerId: 1,
-      serviceId: haircut.id,
+      serviceId: cricketTurf.id,
       slotId: 1,
       status: "confirmed",
-      notes: "First time customer"
+      teamName: "Chennai Stars",
+      playerCount: 16,
+      notes: "Weekend match practice"
+    });
+    
+    // Create a booking for football
+    await this.createBooking({
+      customerId: 2, // Customer user
+      ownerId: 1,
+      serviceId: footballTurf.id,
+      slotId: 8,
+      status: "confirmed",
+      teamName: "United FC",
+      playerCount: 10,
+      notes: "Regular practice session"
     });
   }
 }

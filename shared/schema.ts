@@ -5,6 +5,9 @@ import { z } from "zod";
 // Define user roles
 export const userRoleEnum = pgEnum("user_role", ["customer", "owner"]);
 
+// Define sports types
+export const sportTypeEnum = pgEnum("sport_type", ["cricket", "football", "badminton"]);
+
 // Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -19,12 +22,14 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Services table
+// Turfs table (formerly services)
 export const services = pgTable("services", {
   id: serial("id").primaryKey(),
   ownerId: integer("owner_id").notNull(),
   name: text("name").notNull(),
   description: text("description"),
+  sportType: sportTypeEnum("sport_type").notNull(),
+  maxPlayers: integer("max_players").notNull(), // Maximum number of players allowed
   duration: integer("duration").notNull(), // in minutes
   price: integer("price").notNull(), // in cents
 });
@@ -47,6 +52,8 @@ export const bookings = pgTable("bookings", {
   serviceId: integer("service_id").notNull(),
   slotId: integer("slot_id").notNull(),
   status: text("status").notNull().default("confirmed"), // confirmed, canceled, completed
+  teamName: text("team_name"), // Optional team name
+  playerCount: integer("player_count").notNull().default(1), // Number of players in booking
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
