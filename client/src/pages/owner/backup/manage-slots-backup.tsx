@@ -544,132 +544,119 @@ export default function ManageSlots() {
             </Dialog>
           </div>
           
-          {turfs?.length === 0 && !turfsLoading && (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <CardTitle className="text-xl mb-2">No Turfs Available</CardTitle>
-                <CardDescription className="mb-4">
-                  You need to create turfs before you can add time slots.
-                </CardDescription>
-                <Button variant="outline" asChild>
-                  <a href="/owner/manage-turfs">Manage Turfs</a>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium">Filter by Turf</h2>
+            </div>
+            <Select value={selectedTurf} onValueChange={setSelectedTurf}>
+              <SelectTrigger className="w-full md:w-[300px]">
+                <SelectValue placeholder="All Turfs" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Turfs</SelectItem>
+                {turfsLoading ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : turfs && turfs.length > 0 ? (
+                  turfs.map((turf) => (
+                    <SelectItem key={turf.id} value={turf.id.toString()}>
+                      {turf.name} - {turf.sportType}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-center text-sm text-muted-foreground">
+                    No turfs found
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
           
-          {turfs && turfs.length > 0 && (
-            <div className="flex flex-col space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant={!selectedTurf ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedTurf("")}
-                >
-                  All Turfs
-                </Button>
-                
-                {turfs.map((turf) => (
-                  <Button
-                    key={turf.id}
-                    variant={selectedTurf === turf.id.toString() ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedTurf(turf.id.toString())}
-                  >
-                    {turf.name}
-                  </Button>
-                ))}
+          <div className="space-y-6">
+            {slotsLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-full max-w-sm" />
+                <Skeleton className="h-64 w-full rounded-md" />
               </div>
-              
-              {slotsLoading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
+            ) : sortedSlots.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center animate-in fade-in-50">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                  <Clock className="h-10 w-10 text-primary" />
                 </div>
-              ) : sortedSlots.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <CardTitle className="text-xl mb-2">No Time Slots Found</CardTitle>
-                    <CardDescription className="mb-4">
-                      {selectedTurf 
-                        ? "No time slots found for the selected turf."
-                        : "You haven't created any time slots yet."}
-                    </CardDescription>
-                    <Button 
-                      onClick={() => setIsDialogOpen(true)}
-                    >
-                      Create Slots
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  {Object.entries(slotsByDate).map(([date, daySlots]) => (
-                    <Card key={date}>
-                      <CardHeader className="py-4">
-                        <CardTitle>{format(parseISO(date), 'EEEE, MMMM do, yyyy')}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-0">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Turf</TableHead>
-                              <TableHead>Start Time</TableHead>
-                              <TableHead>End Time</TableHead>
-                              <TableHead>Duration</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {daySlots.map((slot) => (
+                <h2 className="mt-6 text-xl font-semibold">No time slots found</h2>
+                <p className="mt-2 text-center text-sm text-muted-foreground">
+                  You haven't created any time slots yet. Click the "Create New Slots" button to add availability for your turfs.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {Object.entries(slotsByDate).map(([date, daySlots]) => (
+                  <Card key={date}>
+                    <CardHeader className="pb-3">
+                      <CardTitle>{format(new Date(date), 'EEEE, MMMM d, yyyy')}</CardTitle>
+                      <CardDescription>
+                        {daySlots.length} {daySlots.length === 1 ? 'slot' : 'slots'} available
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[180px]">Turf</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Duration</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {daySlots.map(slot => {
+                            const startTime = new Date(slot.startTime);
+                            const endTime = new Date(slot.endTime);
+                            const durationMs = endTime.getTime() - startTime.getTime();
+                            const durationMins = Math.round(durationMs / (1000 * 60));
+                            
+                            return (
                               <TableRow key={slot.id}>
-                                <TableCell>{getTurfName(slot.turfId)}</TableCell>
-                                <TableCell>{format(new Date(slot.startTime), 'h:mm a')}</TableCell>
-                                <TableCell>{format(new Date(slot.endTime), 'h:mm a')}</TableCell>
-                                <TableCell>
-                                  {Math.round(
-                                    (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60000
-                                  )} min
+                                <TableCell className="font-medium">
+                                  {getTurfName(slot.turfId)}
                                 </TableCell>
                                 <TableCell>
-                                  {slot.isBooked ? (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500">
-                                      Booked
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-500">
-                                      Available
-                                    </span>
-                                  )}
+                                  {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+                                </TableCell>
+                                <TableCell>
+                                  {durationMins} minutes
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center">
+                                    <div className={`mr-2 h-2 w-2 rounded-full ${slot.isBooked ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                                    <span>{slot.isBooked ? 'Booked' : 'Available'}</span>
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {!slot.isBooked && (
-                                    <Button
-                                      variant="ghost"
+                                    <Button 
+                                      variant="outline"
                                       size="icon"
                                       onClick={() => deleteSlotMutation.mutate(slot.id)}
                                       disabled={deleteSlotMutation.isPending}
                                     >
                                       <Trash2 className="h-4 w-4" />
-                                      <span className="sr-only">Delete</span>
                                     </Button>
                                   )}
                                 </TableCell>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>
