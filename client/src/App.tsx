@@ -19,6 +19,7 @@ import CustomerProfile from "@/pages/customer/profile";
 // Owner pages
 import OwnerDashboard from "@/pages/owner/dashboard";
 import ManageSlots from "@/pages/owner/manage-slots";
+import ManageTurfs from "@/pages/owner/manage-turfs";
 import ManageBookings from "@/pages/owner/manage-bookings";
 import OwnerProfile from "@/pages/owner/profile";
 
@@ -37,7 +38,8 @@ function Router() {
       
       {/* Owner routes */}
       <ProtectedRoute path="/owner" component={OwnerDashboard} allowedRoles={["owner"]} />
-      <ProtectedRoute path="/owner/slots" component={ManageSlots} allowedRoles={["owner"]} />
+      <ProtectedRoute path="/owner/manage-turfs" component={ManageTurfs} allowedRoles={["owner"]} />
+      <ProtectedRoute path="/owner/manage-slots" component={ManageSlots} allowedRoles={["owner"]} />
       <ProtectedRoute path="/owner/bookings" component={ManageBookings} allowedRoles={["owner"]} />
       <ProtectedRoute path="/owner/profile" component={OwnerProfile} allowedRoles={["owner"]} />
       

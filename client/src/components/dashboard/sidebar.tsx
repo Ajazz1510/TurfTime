@@ -9,7 +9,8 @@ import {
   LogOut,
   Settings,
   Menu,
-  X
+  X,
+  Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -56,7 +57,12 @@ export default function Sidebar({ className }: SidebarProps) {
       icon: LayoutDashboard,
     },
     {
-      href: "/owner/slots",
+      href: "/owner/manage-turfs",
+      label: "Manage Turfs",
+      icon: Calendar,
+    },
+    {
+      href: "/owner/manage-slots",
       label: "Manage Slots",
       icon: Clock,
     },
@@ -112,7 +118,7 @@ export default function Sidebar({ className }: SidebarProps) {
           {/* Logo and close button for mobile */}
           <div className="flex items-center justify-between mb-8 mt-2">
             <Link href="/" className="text-primary font-bold text-2xl">
-              BookEasy
+              TurfTime
             </Link>
             <Button
               variant="ghost"
@@ -135,6 +141,28 @@ export default function Sidebar({ className }: SidebarProps) {
 
           {/* Nav links */}
           <nav className="flex-1 space-y-1">
+            {/* Home link */}
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+            >
+              <a
+                className={cn(
+                  "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  location === "/"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <Home className="mr-3 h-5 w-5" />
+                Home
+              </a>
+            </Link>
+            
+            {/* Divider */}
+            <div className="my-2 border-t border-gray-200"></div>
+            
+            {/* Dashboard links */}
             {links.map((link) => (
               <Link
                 key={link.href}
