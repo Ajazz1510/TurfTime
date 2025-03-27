@@ -7,6 +7,7 @@ import Waitlist from "@/components/landing/waitlist";
 import Testimonials from "@/components/landing/testimonials";
 import FAQ from "@/components/landing/faq";
 import Footer from "@/components/landing/footer";
+import NearbyTurfs from "@/components/landing/nearby-turfs";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -32,6 +33,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <Features />
+        <NearbyTurfs />
         <HowItWorks />
         <Pricing />
         <Waitlist />

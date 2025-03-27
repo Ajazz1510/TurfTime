@@ -75,6 +75,12 @@ const turfFormSchema = z.object({
   duration: z.string().transform(val => parseInt(val)),
   price: z.string().transform(val => parseInt(val)),
   location: z.string().min(3, "Location must be at least 3 characters"),
+  latitude: z.string()
+    .optional()
+    .transform(val => val ? parseFloat(val) : null),
+  longitude: z.string()
+    .optional()
+    .transform(val => val ? parseFloat(val) : null),
   amenities: z.object({
     changeRooms: z.boolean().default(false),
     floodlights: z.boolean().default(false),
@@ -114,6 +120,8 @@ export default function ManageTurfs() {
       duration: "60",
       price: "400",
       location: "",
+      latitude: "",
+      longitude: "",
       amenities: {
         changeRooms: false,
         floodlights: false,
@@ -234,6 +242,8 @@ export default function ManageTurfs() {
       duration: turf.duration.toString(),
       price: turf.price.toString(),
       location: turf.location || "",
+      latitude: turf.latitude ? turf.latitude.toString() : "",
+      longitude: turf.longitude ? turf.longitude.toString() : "",
       amenities: {
         changeRooms: turf.amenities.changeRooms || false,
         floodlights: turf.amenities.floodlights || false,
@@ -408,6 +418,52 @@ export default function ManageTurfs() {
                         </FormItem>
                       )}
                     />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="latitude"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Latitude</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                step="0.000001" 
+                                placeholder="12.9716" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Geographic coordinate (e.g., 12.9716)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="longitude"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Longitude</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                step="0.000001" 
+                                placeholder="77.5946" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Geographic coordinate (e.g., 77.5946)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     
                     <FormField
                       control={form.control}

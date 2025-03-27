@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -40,6 +40,8 @@ export const turfs = pgTable("turfs", {
   amenities: jsonb("amenities").default({}).notNull(),
   location: text("location"),
   imageUrl: text("image_url"),
+  latitude: doublePrecision("latitude"), // Geographic coordinates
+  longitude: doublePrecision("longitude"), // Geographic coordinates
 });
 
 // Available slots table
@@ -70,7 +72,10 @@ export const bookings = pgTable("bookings", {
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
-export const insertTurfSchema = createInsertSchema(turfs).omit({ id: true });
+export const insertTurfSchema = createInsertSchema(turfs, {
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
+}).omit({ id: true });
 // Create the slot schema with proper date transformation
 export const insertSlotSchema = createInsertSchema(slots, {
   startTime: z.string().or(z.date()).transform(val => 
