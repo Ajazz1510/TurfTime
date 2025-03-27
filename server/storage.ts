@@ -1,14 +1,16 @@
 import { 
-  users, User, InsertUser, 
-  services, Service, InsertService,
+  users, User, InsertUser,
+  turfs, Turf, InsertTurf,
   slots, Slot, InsertSlot,
-  bookings, Booking, InsertBooking,
-  waitlist, WaitlistEntry, InsertWaitlist
+  bookings, Booking, InsertBooking
 } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { eq, and, asc, desc, sql, count } from "drizzle-orm";
+import { db } from "./db";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 // Interface for storage operations
 export interface IStorage {
@@ -19,17 +21,18 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   
-  // Service operations
-  getService(id: number): Promise<Service | undefined>;
-  getServicesByOwner(ownerId: number): Promise<Service[]>;
-  createService(service: InsertService): Promise<Service>;
-  updateService(id: number, serviceData: Partial<Service>): Promise<Service | undefined>;
-  deleteService(id: number): Promise<boolean>;
+  // Turf operations
+  getTurf(id: number): Promise<Turf | undefined>;
+  getTurfsByOwner(ownerId: number): Promise<Turf[]>;
+  getTurfsBySportType(sportType: string): Promise<Turf[]>;
+  createTurf(turf: InsertTurf): Promise<Turf>;
+  updateTurf(id: number, turfData: Partial<Turf>): Promise<Turf | undefined>;
+  deleteTurf(id: number): Promise<boolean>;
   
   // Slot operations
   getSlot(id: number): Promise<Slot | undefined>;
   getSlotsByOwner(ownerId: number): Promise<Slot[]>;
-  getAvailableSlots(ownerId?: number, serviceId?: number): Promise<Slot[]>;
+  getAvailableSlots(ownerId?: number, turfId?: number): Promise<Slot[]>;
   createSlot(slot: InsertSlot): Promise<Slot>;
   updateSlot(id: number, slotData: Partial<Slot>): Promise<Slot | undefined>;
   deleteSlot(id: number): Promise<boolean>;
@@ -42,346 +45,389 @@ export interface IStorage {
   updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | undefined>;
   deleteBooking(id: number): Promise<boolean>;
   
-  // Waitlist operations
-  addToWaitlist(entry: InsertWaitlist): Promise<WaitlistEntry>;
-  
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private services: Map<number, Service>;
-  private slots: Map<number, Slot>;
-  private bookings: Map<number, Booking>;
-  private waitlistEntries: Map<number, WaitlistEntry>;
-  
-  private userIdCounter: number;
-  private serviceIdCounter: number;
-  private slotIdCounter: number;
-  private bookingIdCounter: number;
-  private waitlistIdCounter: number;
-  
-  sessionStore: session.SessionStore;
+export class PostgresStorage implements IStorage {
+  sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.services = new Map();
-    this.slots = new Map();
-    this.bookings = new Map();
-    this.waitlistEntries = new Map();
-    
-    this.userIdCounter = 1;
-    this.serviceIdCounter = 1;
-    this.slotIdCounter = 1;
-    this.bookingIdCounter = 1;
-    this.waitlistIdCounter = 1;
-    
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // 24 hours
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
     
-    // Add initial data for testing
-    this.seedData();
+    // Initialize the database with seed data
+    this.initializeDatabase();
   }
   
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
   
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+    const result = await db.select().from(users).where(eq(users.email, email));
+    return result[0];
   }
   
   async createUser(userData: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date();
-    const user: User = { ...userData, id, createdAt: now };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(userData).returning();
+    return result[0];
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...userData };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const result = await db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
   }
   
-  // Service operations
-  async getService(id: number): Promise<Service | undefined> {
-    return this.services.get(id);
+  // Turf operations
+  async getTurf(id: number): Promise<Turf | undefined> {
+    const result = await db.select().from(turfs).where(eq(turfs.id, id));
+    return result[0];
   }
   
-  async getServicesByOwner(ownerId: number): Promise<Service[]> {
-    return Array.from(this.services.values()).filter(service => service.ownerId === ownerId);
+  async getTurfsByOwner(ownerId: number): Promise<Turf[]> {
+    return await db.select().from(turfs).where(eq(turfs.ownerId, ownerId));
   }
   
-  async createService(serviceData: InsertService): Promise<Service> {
-    const id = this.serviceIdCounter++;
-    const service: Service = { ...serviceData, id };
-    this.services.set(id, service);
-    return service;
+  async getTurfsBySportType(sportType: string): Promise<Turf[]> {
+    return await db.select().from(turfs).where(eq(turfs.sportType, sportType as any));
   }
   
-  async updateService(id: number, serviceData: Partial<Service>): Promise<Service | undefined> {
-    const service = this.services.get(id);
-    if (!service) return undefined;
-    
-    const updatedService = { ...service, ...serviceData };
-    this.services.set(id, updatedService);
-    return updatedService;
+  async createTurf(turfData: InsertTurf): Promise<Turf> {
+    const result = await db.insert(turfs).values(turfData).returning();
+    return result[0];
   }
   
-  async deleteService(id: number): Promise<boolean> {
-    return this.services.delete(id);
+  async updateTurf(id: number, turfData: Partial<Turf>): Promise<Turf | undefined> {
+    const result = await db.update(turfs)
+      .set(turfData)
+      .where(eq(turfs.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  async deleteTurf(id: number): Promise<boolean> {
+    const result = await db.delete(turfs).where(eq(turfs.id, id)).returning();
+    return result.length > 0;
   }
   
   // Slot operations
   async getSlot(id: number): Promise<Slot | undefined> {
-    return this.slots.get(id);
+    const result = await db.select().from(slots).where(eq(slots.id, id));
+    return result[0];
   }
   
   async getSlotsByOwner(ownerId: number): Promise<Slot[]> {
-    return Array.from(this.slots.values()).filter(slot => slot.ownerId === ownerId);
+    return await db.select().from(slots).where(eq(slots.ownerId, ownerId));
   }
   
-  async getAvailableSlots(ownerId?: number, serviceId?: number): Promise<Slot[]> {
-    let filteredSlots = Array.from(this.slots.values()).filter(slot => !slot.isBooked);
+  async getAvailableSlots(ownerId?: number, turfId?: number): Promise<Slot[]> {
+    let conditions = and(eq(slots.isBooked, false));
     
     if (ownerId !== undefined) {
-      filteredSlots = filteredSlots.filter(slot => slot.ownerId === ownerId);
+      conditions = and(conditions, eq(slots.ownerId, ownerId));
     }
     
-    if (serviceId !== undefined) {
-      filteredSlots = filteredSlots.filter(slot => slot.serviceId === serviceId);
+    if (turfId !== undefined) {
+      conditions = and(conditions, eq(slots.turfId, turfId));
     }
     
-    return filteredSlots;
+    return await db.select()
+      .from(slots)
+      .where(conditions)
+      .orderBy(asc(slots.startTime));
   }
   
   async createSlot(slotData: InsertSlot): Promise<Slot> {
-    const id = this.slotIdCounter++;
-    const slot: Slot = { ...slotData, id };
-    this.slots.set(id, slot);
-    return slot;
+    const result = await db.insert(slots).values(slotData).returning();
+    return result[0];
   }
   
   async updateSlot(id: number, slotData: Partial<Slot>): Promise<Slot | undefined> {
-    const slot = this.slots.get(id);
-    if (!slot) return undefined;
-    
-    const updatedSlot = { ...slot, ...slotData };
-    this.slots.set(id, updatedSlot);
-    return updatedSlot;
+    const result = await db.update(slots)
+      .set(slotData)
+      .where(eq(slots.id, id))
+      .returning();
+    return result[0];
   }
   
   async deleteSlot(id: number): Promise<boolean> {
-    return this.slots.delete(id);
+    const result = await db.delete(slots).where(eq(slots.id, id)).returning();
+    return result.length > 0;
   }
   
   // Booking operations
   async getBooking(id: number): Promise<Booking | undefined> {
-    return this.bookings.get(id);
+    const result = await db.select().from(bookings).where(eq(bookings.id, id));
+    return result[0];
   }
   
   async getBookingsByCustomer(customerId: number): Promise<Booking[]> {
-    return Array.from(this.bookings.values()).filter(booking => booking.customerId === customerId);
+    return await db.select()
+      .from(bookings)
+      .where(eq(bookings.customerId, customerId))
+      .orderBy(desc(bookings.createdAt));
   }
   
   async getBookingsByOwner(ownerId: number): Promise<Booking[]> {
-    return Array.from(this.bookings.values()).filter(booking => booking.ownerId === ownerId);
+    return await db.select()
+      .from(bookings)
+      .where(eq(bookings.ownerId, ownerId))
+      .orderBy(desc(bookings.createdAt));
   }
   
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
-    const id = this.bookingIdCounter++;
-    const now = new Date();
-    const booking: Booking = { ...bookingData, id, createdAt: now };
-    this.bookings.set(id, booking);
+    // Start a transaction to handle slot booking atomically
+    const result = await db.transaction(async (tx) => {
+      // Create the booking
+      const booking = (await tx.insert(bookings).values(bookingData).returning())[0];
+      
+      // Update the slot to be booked
+      await tx.update(slots)
+        .set({ isBooked: true })
+        .where(eq(slots.id, bookingData.slotId));
+      
+      return booking;
+    });
     
-    // Update slot to be booked
-    const slot = await this.getSlot(bookingData.slotId);
-    if (slot) {
-      await this.updateSlot(slot.id, { isBooked: true });
-    }
-    
-    return booking;
+    return result;
   }
   
   async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | undefined> {
-    const booking = this.bookings.get(id);
-    if (!booking) return undefined;
-    
-    const updatedBooking = { ...booking, ...bookingData };
-    this.bookings.set(id, updatedBooking);
-    return updatedBooking;
+    // If status is being updated to cancelled, free up the slot
+    if (bookingData.status === "cancelled") {
+      return await db.transaction(async (tx) => {
+        // Get the booking to find the slot
+        const bookingResult = await tx.select().from(bookings).where(eq(bookings.id, id));
+        const booking = bookingResult[0];
+        
+        if (!booking) return undefined;
+        
+        // Update the booking
+        const updatedBooking = (await tx.update(bookings)
+          .set(bookingData)
+          .where(eq(bookings.id, id))
+          .returning())[0];
+        
+        // Free up the slot
+        await tx.update(slots)
+          .set({ isBooked: false })
+          .where(eq(slots.id, booking.slotId));
+        
+        return updatedBooking;
+      });
+    } else {
+      // Simple update without changing slot status
+      const result = await db.update(bookings)
+        .set(bookingData)
+        .where(eq(bookings.id, id))
+        .returning();
+      return result[0];
+    }
   }
   
   async deleteBooking(id: number): Promise<boolean> {
-    const booking = this.bookings.get(id);
-    if (!booking) return false;
-    
-    // Free up the slot
-    const slot = await this.getSlot(booking.slotId);
-    if (slot) {
-      await this.updateSlot(slot.id, { isBooked: false });
-    }
-    
-    return this.bookings.delete(id);
+    return await db.transaction(async (tx) => {
+      // Get the booking to find the slot
+      const bookingResult = await tx.select().from(bookings).where(eq(bookings.id, id));
+      const booking = bookingResult[0];
+      
+      if (!booking) return false;
+      
+      // Delete the booking
+      const deleteResult = await tx.delete(bookings).where(eq(bookings.id, id)).returning();
+      
+      if (deleteResult.length === 0) return false;
+      
+      // Free up the slot
+      await tx.update(slots)
+        .set({ isBooked: false })
+        .where(eq(slots.id, booking.slotId));
+      
+      return true;
+    });
   }
   
-  // Waitlist operations
-  async addToWaitlist(entryData: InsertWaitlist): Promise<WaitlistEntry> {
-    const id = this.waitlistIdCounter++;
-    const now = new Date();
-    const entry: WaitlistEntry = { ...entryData, id, createdAt: now };
-    this.waitlistEntries.set(id, entry);
-    return entry;
-  }
-  
-  // Seed some initial data for testing
-  private async seedData() {
-    // Create owner user
-    await this.createUser({
-      username: "businessowner",
-      password: "$2b$10$8dIwMhYzKW7ZVeKCQQeYnO5cLArzU/yrDYkCmAaVNGVBdL9QF1Gua", // password = "password"
-      email: "owner@example.com",
-      fullName: "Business Owner",
-      role: "owner",
-      businessName: "Acme Salon",
-      businessType: "salon",
-      phone: "555-123-4567"
-    });
-    
-    // Create customer user
-    await this.createUser({
-      username: "customer",
-      password: "$2b$10$8dIwMhYzKW7ZVeKCQQeYnO5cLArzU/yrDYkCmAaVNGVBdL9QF1Gua", // password = "password"
-      email: "customer@example.com",
-      fullName: "John Customer",
-      role: "customer",
-      phone: "555-987-6543"
-    });
-    
-    // Create some turf services for different sports
-    const cricketTurf = await this.createService({
-      ownerId: 1, // Owner user
-      name: "Cricket Pitch",
-      description: "Standard cricket turf with quality pitch",
-      sportType: "cricket",
-      maxPlayers: 22,
-      duration: 120, // 2 hours
-      price: 5000 // $50.00
-    });
-    
-    const footballTurf = await this.createService({
-      ownerId: 1,
-      name: "Football Ground",
-      description: "Full-size football turf with artificial grass",
-      sportType: "football",
-      maxPlayers: 14,
-      duration: 60, // 1 hour
-      price: 4000 // $40.00
-    });
-    
-    const badmintonTurf = await this.createService({
-      ownerId: 1,
-      name: "Badminton Court",
-      description: "Indoor badminton court with proper lighting",
-      sportType: "badminton",
-      maxPlayers: 4,
-      duration: 60, // 1 hour
-      price: 2000 // $20.00
-    });
-    
-    // Create slots for cricket turf
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(6, 0, 0, 0); // Start early for cricket
-    
-    // Cricket slots (2-hour slots from 6am to 8pm)
-    for (let i = 0; i < 7; i++) {
-      const startTime = new Date(tomorrow);
-      startTime.setHours(6 + i * 2, 0, 0, 0);
+  // Initialize database with seed data if needed
+  private async initializeDatabase() {
+    try {
+      // Check if users table is empty
+      const userCount = await db.select({ count: count() }).from(users);
       
-      const endTime = new Date(startTime);
-      endTime.setMinutes(endTime.getMinutes() + 120); // 2 hour slots
-      
-      await this.createSlot({
-        ownerId: 1,
-        serviceId: cricketTurf.id,
-        startTime,
-        endTime,
-        isBooked: false
-      });
+      if (userCount.length === 0 || userCount[0].count === 0) {
+        console.log("Initializing database with seed data...");
+        
+        // Create owner user with hashed password (this is "password")
+        const owner = await this.createUser({
+          username: "owner",
+          password: "$2b$10$8dIwMhYzKW7ZVeKCQQeYnO5cLArzU/yrDYkCmAaVNGVBdL9QF1Gua", 
+          email: "owner@turfbooking.com",
+          fullName: "Turf Owner",
+          role: "owner",
+          businessName: "Premier Turf Club",
+          phone: "555-123-4567",
+          address: "123 Sports Lane",
+          city: "Sportsville"
+        });
+        
+        // Create customer user
+        const customer = await this.createUser({
+          username: "customer",
+          password: "$2b$10$8dIwMhYzKW7ZVeKCQQeYnO5cLArzU/yrDYkCmAaVNGVBdL9QF1Gua", 
+          email: "customer@example.com",
+          fullName: "Sam Player",
+          role: "customer",
+          phone: "555-987-6543"
+        });
+        
+        // Create turf for cricket
+        const cricketTurf = await this.createTurf({
+          ownerId: owner.id,
+          name: "Premium Cricket Ground",
+          description: "Professional cricket ground with well-maintained pitch and outfield",
+          sportType: "cricket",
+          maxPlayers: 22,
+          duration: 120, // 2 hours
+          price: 5000, // $50.00
+          amenities: { changeRooms: true, floodlights: true, parking: true, refreshments: true },
+          location: "North Sports Complex"
+        });
+        
+        // Create turf for football
+        const footballTurf = await this.createTurf({
+          ownerId: owner.id,
+          name: "Elite Football Field",
+          description: "FIFA-standard football field with artificial turf",
+          sportType: "football",
+          maxPlayers: 14,
+          duration: 60, // 1 hour
+          price: 4000, // $40.00
+          amenities: { changeRooms: true, floodlights: true, parking: true },
+          location: "Central Stadium"
+        });
+        
+        // Create turf for badminton
+        const badmintonTurf = await this.createTurf({
+          ownerId: owner.id,
+          name: "Indoor Badminton Court",
+          description: "Premium indoor badminton courts with wooden flooring",
+          sportType: "badminton",
+          maxPlayers: 4,
+          duration: 60, // 1 hour
+          price: 2000, // $20.00
+          amenities: { airConditioned: true, equipmentRental: true },
+          location: "East Sports Hall"
+        });
+        
+        // Create slots for the next 7 days
+        const now = new Date();
+        
+        for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
+          const date = new Date(now);
+          date.setDate(date.getDate() + dayOffset);
+          date.setHours(0, 0, 0, 0);
+          
+          // Cricket slots (2-hour slots from 6am to 6pm)
+          for (let i = 0; i < 6; i++) {
+            const startTime = new Date(date);
+            startTime.setHours(6 + i * 2, 0, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + 120); // 2 hour slots
+            
+            await this.createSlot({
+              ownerId: owner.id,
+              turfId: cricketTurf.id,
+              startTime,
+              endTime,
+              isBooked: false
+            });
+          }
+          
+          // Football slots (1-hour slots from 8am to 8pm)
+          for (let i = 0; i < 12; i++) {
+            const startTime = new Date(date);
+            startTime.setHours(8 + i, 0, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + 60); // 1 hour slots
+            
+            await this.createSlot({
+              ownerId: owner.id,
+              turfId: footballTurf.id,
+              startTime,
+              endTime,
+              isBooked: false
+            });
+          }
+          
+          // Badminton slots (1-hour slots from 9am to 9pm)
+          for (let i = 0; i < 12; i++) {
+            const startTime = new Date(date);
+            startTime.setHours(9 + i, 0, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + 60); // 1 hour slots
+            
+            await this.createSlot({
+              ownerId: owner.id,
+              turfId: badmintonTurf.id,
+              startTime,
+              endTime,
+              isBooked: false
+            });
+          }
+        }
+        
+        // Create a sample booking for cricket
+        const cricketSlots = await this.getAvailableSlots(owner.id, cricketTurf.id);
+        if (cricketSlots.length > 0) {
+          await this.createBooking({
+            customerId: customer.id,
+            ownerId: owner.id,
+            turfId: cricketTurf.id,
+            slotId: cricketSlots[0].id,
+            status: "confirmed",
+            teamName: "Chennai Stars",
+            playerCount: 16,
+            notes: "Weekend match practice"
+          });
+        }
+        
+        // Create a sample booking for football
+        const footballSlots = await this.getAvailableSlots(owner.id, footballTurf.id);
+        if (footballSlots.length > 0) {
+          await this.createBooking({
+            customerId: customer.id,
+            ownerId: owner.id,
+            turfId: footballTurf.id,
+            slotId: footballSlots[0].id,
+            status: "confirmed",
+            teamName: "United FC",
+            playerCount: 10,
+            notes: "Regular practice session"
+          });
+        }
+        
+        console.log("Database initialized with seed data.");
+      }
+    } catch (error) {
+      console.error("Error initializing database:", error);
     }
-    
-    // Football slots (1-hour slots from 8am to 10pm)
-    for (let i = 0; i < 14; i++) {
-      const startTime = new Date(tomorrow);
-      startTime.setHours(8 + Math.floor(i / 2), (i % 2) * 30, 0, 0);
-      
-      const endTime = new Date(startTime);
-      endTime.setMinutes(endTime.getMinutes() + 60); // 1 hour slots
-      
-      await this.createSlot({
-        ownerId: 1,
-        serviceId: footballTurf.id,
-        startTime,
-        endTime,
-        isBooked: false
-      });
-    }
-    
-    // Badminton slots (1-hour slots from 9am to 11pm)
-    for (let i = 0; i < 14; i++) {
-      const startTime = new Date(tomorrow);
-      startTime.setHours(9 + Math.floor(i / 2), (i % 2) * 30, 0, 0);
-      
-      const endTime = new Date(startTime);
-      endTime.setMinutes(endTime.getMinutes() + 60); // 1 hour slots
-      
-      await this.createSlot({
-        ownerId: 1,
-        serviceId: badmintonTurf.id,
-        startTime,
-        endTime,
-        isBooked: false
-      });
-    }
-    
-    // Create a booking for cricket
-    await this.createBooking({
-      customerId: 2, // Customer user
-      ownerId: 1,
-      serviceId: cricketTurf.id,
-      slotId: 1,
-      status: "confirmed",
-      teamName: "Chennai Stars",
-      playerCount: 16,
-      notes: "Weekend match practice"
-    });
-    
-    // Create a booking for football
-    await this.createBooking({
-      customerId: 2, // Customer user
-      ownerId: 1,
-      serviceId: footballTurf.id,
-      slotId: 8,
-      status: "confirmed",
-      teamName: "United FC",
-      playerCount: 10,
-      notes: "Regular practice session"
-    });
   }
 }
 
 // Export a single instance of the storage
-export const storage = new MemStorage();
+export const storage = new PostgresStorage();

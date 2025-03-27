@@ -4,10 +4,9 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
-  insertServiceSchema, 
+  insertTurfSchema, 
   insertSlotSchema, 
-  insertBookingSchema, 
-  insertWaitlistSchema 
+  insertBookingSchema 
 } from "@shared/schema";
 
 // Helper function to check if user is authenticated
@@ -38,49 +37,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
 
-  // Service routes
-  app.get("/api/services", async (req, res) => {
+  // Turf routes
+  app.get("/api/turfs", async (req, res) => {
     try {
       const ownerId = req.query.ownerId ? Number(req.query.ownerId) : undefined;
+      const sportType = req.query.sportType as string | undefined;
+      
       if (ownerId) {
-        const services = await storage.getServicesByOwner(ownerId);
-        res.json(services);
+        const turfs = await storage.getTurfsByOwner(ownerId);
+        res.json(turfs);
+      } else if (sportType) {
+        const turfs = await storage.getTurfsBySportType(sportType);
+        res.json(turfs);
       } else {
-        // In a real app, we might want to limit this to only return services from verified owners
-        const services = Array.from(
+        // In a real app, we might want to limit this to only return turfs from verified owners
+        const turfs = Array.from(
           new Set(
             (await Promise.all(
               Array.from({ length: 10 }, (_, i) => i + 1).map(async (id) => {
-                return storage.getServicesByOwner(id);
+                return storage.getTurfsByOwner(id);
               })
             )).flat()
           )
         );
-        res.json(services);
+        res.json(turfs);
       }
     } catch (error) {
-      res.status(500).json({ message: "Failed to get services" });
+      res.status(500).json({ message: "Failed to get turfs" });
     }
   });
 
-  app.get("/api/services/:id", async (req, res) => {
+  app.get("/api/turfs/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const service = await storage.getService(id);
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
+      const turf = await storage.getTurf(id);
+      if (!turf) {
+        return res.status(404).json({ message: "Turf not found" });
       }
-      res.json(service);
+      res.json(turf);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get service" });
+      res.status(500).json({ message: "Failed to get turf" });
     }
   });
 
-  app.post("/api/services", isOwner, async (req, res) => {
+  app.post("/api/turfs", isOwner, async (req, res) => {
     try {
-      const validation = insertServiceSchema.safeParse(req.body);
+      const validation = insertTurfSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ message: "Invalid service data", errors: validation.error.format() });
+        return res.status(400).json({ message: "Invalid turf data", errors: validation.error.format() });
       }
 
       // Ensure ownerId matches the authenticated user
@@ -88,56 +92,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized, owner ID mismatch" });
       }
 
-      const service = await storage.createService(req.body);
-      res.status(201).json(service);
+      const turf = await storage.createTurf(req.body);
+      res.status(201).json(turf);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create service" });
+      res.status(500).json({ message: "Failed to create turf" });
     }
   });
 
-  app.put("/api/services/:id", isOwner, async (req, res) => {
+  app.put("/api/turfs/:id", isOwner, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const service = await storage.getService(id);
+      const turf = await storage.getTurf(id);
       
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
+      if (!turf) {
+        return res.status(404).json({ message: "Turf not found" });
       }
       
-      // Check if the service belongs to the authenticated user
-      if (service.ownerId !== req.user.id) {
-        return res.status(403).json({ message: "Unauthorized to update this service" });
+      // Check if the turf belongs to the authenticated user
+      if (turf.ownerId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized to update this turf" });
       }
       
-      const updatedService = await storage.updateService(id, req.body);
-      res.json(updatedService);
+      const updatedTurf = await storage.updateTurf(id, req.body);
+      res.json(updatedTurf);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update service" });
+      res.status(500).json({ message: "Failed to update turf" });
     }
   });
 
-  app.delete("/api/services/:id", isOwner, async (req, res) => {
+  app.delete("/api/turfs/:id", isOwner, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const service = await storage.getService(id);
+      const turf = await storage.getTurf(id);
       
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
+      if (!turf) {
+        return res.status(404).json({ message: "Turf not found" });
       }
       
-      // Check if the service belongs to the authenticated user
-      if (service.ownerId !== req.user.id) {
-        return res.status(403).json({ message: "Unauthorized to delete this service" });
+      // Check if the turf belongs to the authenticated user
+      if (turf.ownerId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized to delete this turf" });
       }
       
-      const success = await storage.deleteService(id);
+      const success = await storage.deleteTurf(id);
       if (success) {
         res.sendStatus(204);
       } else {
-        res.status(500).json({ message: "Failed to delete service" });
+        res.status(500).json({ message: "Failed to delete turf" });
       }
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete service" });
+      res.status(500).json({ message: "Failed to delete turf" });
     }
   });
 
@@ -145,18 +149,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/slots", async (req, res) => {
     try {
       const ownerId = req.query.ownerId ? Number(req.query.ownerId) : undefined;
-      const serviceId = req.query.serviceId ? Number(req.query.serviceId) : undefined;
+      const turfId = req.query.turfId ? Number(req.query.turfId) : undefined;
       const availableOnly = req.query.available === 'true';
       
       if (availableOnly) {
-        const slots = await storage.getAvailableSlots(ownerId, serviceId);
+        const slots = await storage.getAvailableSlots(ownerId, turfId);
         res.json(slots);
       } else if (ownerId) {
         const slots = await storage.getSlotsByOwner(ownerId);
         
-        // Filter by serviceId if provided
-        const filteredSlots = serviceId 
-          ? slots.filter(slot => slot.serviceId === serviceId)
+        // Filter by turfId if provided
+        const filteredSlots = turfId 
+          ? slots.filter(slot => slot.turfId === turfId)
           : slots;
           
         res.json(filteredSlots);
@@ -193,13 +197,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized, owner ID mismatch" });
       }
 
-      // Verify service exists and belongs to owner
-      const service = await storage.getService(req.body.serviceId);
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
+      // Verify turf exists and belongs to owner
+      const turf = await storage.getTurf(req.body.turfId);
+      if (!turf) {
+        return res.status(404).json({ message: "Turf not found" });
       }
-      if (service.ownerId !== req.user.id) {
-        return res.status(403).json({ message: "Service does not belong to this owner" });
+      if (turf.ownerId !== req.user.id) {
+        return res.status(403).json({ message: "Turf does not belong to this owner" });
       }
 
       const slot = await storage.createSlot(req.body);
@@ -321,15 +325,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Slot is already booked" });
       }
 
-      // Verify service exists
-      const service = await storage.getService(req.body.serviceId);
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
+      // Verify turf exists
+      const turf = await storage.getTurf(req.body.turfId);
+      if (!turf) {
+        return res.status(404).json({ message: "Turf not found" });
       }
 
-      // Ensure slot and service belong to the same owner
-      if (slot.ownerId !== service.ownerId || slot.serviceId !== service.id) {
-        return res.status(400).json({ message: "Slot and service mismatch" });
+      // Ensure slot and turf belong to the same owner
+      if (slot.ownerId !== turf.ownerId || slot.turfId !== turf.id) {
+        return res.status(400).json({ message: "Slot and turf mismatch" });
       }
 
       // Set owner ID from the slot
@@ -428,26 +432,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Waitlist route
-  app.post("/api/waitlist", async (req, res) => {
-    try {
-      const validation = insertWaitlistSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ message: "Invalid waitlist data", errors: validation.error.format() });
-      }
-      
-      const entry = await storage.addToWaitlist(req.body);
-      res.status(201).json({ message: "Successfully added to waitlist", id: entry.id });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to add to waitlist" });
-    }
-  });
-
   // Statistics for owner dashboard
   app.get("/api/stats", isOwner, async (req, res) => {
     try {
       const bookings = await storage.getBookingsByOwner(req.user.id);
-      const services = await storage.getServicesByOwner(req.user.id);
+      const turfs = await storage.getTurfsByOwner(req.user.id);
       const slots = await storage.getSlotsByOwner(req.user.id);
       
       // Total bookings
@@ -459,15 +448,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<string, number>);
       
-      // Bookings by service
-      const bookingsByService = bookings.reduce((acc, booking) => {
-        acc[booking.serviceId] = (acc[booking.serviceId] || 0) + 1;
+      // Bookings by turf
+      const bookingsByTurf = bookings.reduce((acc, booking) => {
+        acc[booking.turfId] = (acc[booking.turfId] || 0) + 1;
         return acc;
       }, {} as Record<number, number>);
       
-      // Upcoming bookings (not completed/canceled)
+      // Upcoming bookings (not completed/cancelled)
       const upcomingBookings = bookings.filter(
-        booking => booking.status !== "completed" && booking.status !== "canceled"
+        booking => booking.status !== "completed" && booking.status !== "cancelled"
       ).length;
       
       // Available slots
@@ -476,9 +465,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         totalBookings,
         bookingsByStatus,
-        bookingsByService,
+        bookingsByTurf,
         upcomingBookings,
-        totalServices: services.length,
+        totalTurfs: turfs.length,
         totalSlots: slots.length,
         availableSlots
       });

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,6 +8,9 @@ export const userRoleEnum = pgEnum("user_role", ["customer", "owner"]);
 // Define sports types
 export const sportTypeEnum = pgEnum("sport_type", ["cricket", "football", "badminton"]);
 
+// Define booking status 
+export const bookingStatusEnum = pgEnum("booking_status", ["pending", "confirmed", "cancelled", "completed"]);
+
 // Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -16,14 +19,16 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   fullName: text("full_name").notNull(),
   role: userRoleEnum("role").notNull().default("customer"),
+  // For turf owners
   businessName: text("business_name"),
-  businessType: text("business_type"),
   phone: text("phone"),
+  address: text("address"),
+  city: text("city"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Turfs table (formerly services)
-export const services = pgTable("services", {
+// Turfs table
+export const turfs = pgTable("turfs", {
   id: serial("id").primaryKey(),
   ownerId: integer("owner_id").notNull(),
   name: text("name").notNull(),
@@ -32,13 +37,16 @@ export const services = pgTable("services", {
   maxPlayers: integer("max_players").notNull(), // Maximum number of players allowed
   duration: integer("duration").notNull(), // in minutes
   price: integer("price").notNull(), // in cents
+  amenities: jsonb("amenities").default({}).notNull(),
+  location: text("location"),
+  imageUrl: text("image_url"),
 });
 
 // Available slots table
 export const slots = pgTable("slots", {
   id: serial("id").primaryKey(),
   ownerId: integer("owner_id").notNull(),
-  serviceId: integer("service_id").notNull(),
+  turfId: integer("turf_id").notNull(), // Renamed from serviceId
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   isBooked: boolean("is_booked").default(false),
@@ -49,51 +57,53 @@ export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").notNull(),
   ownerId: integer("owner_id").notNull(),
-  serviceId: integer("service_id").notNull(),
+  turfId: integer("turf_id").notNull(), // Renamed from serviceId
   slotId: integer("slot_id").notNull(),
-  status: text("status").notNull().default("confirmed"), // confirmed, canceled, completed
-  teamName: text("team_name"), // Optional team name
-  playerCount: integer("player_count").notNull().default(1), // Number of players in booking
+  status: bookingStatusEnum("status").notNull().default("pending"), 
+  teamName: text("team_name").notNull(), // Team name is required for turf bookings
+  playerCount: integer("player_count").notNull(), // Number of players in booking
   notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Waitlist entries
-export const waitlist = pgTable("waitlist", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  fullName: text("full_name").notNull(),
-  businessType: text("business_type"),
-  userType: text("user_type").notNull(), // business-owner or customer
-  newsletter: boolean("newsletter").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
-export const insertServiceSchema = createInsertSchema(services).omit({ id: true });
+export const insertTurfSchema = createInsertSchema(turfs).omit({ id: true });
 export const insertSlotSchema = createInsertSchema(slots).omit({ id: true });
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
-export const insertWaitlistSchema = createInsertSchema(waitlist).omit({ id: true, createdAt: true });
 
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type InsertService = z.infer<typeof insertServiceSchema>;
+export type InsertTurf = z.infer<typeof insertTurfSchema>;
 export type InsertSlot = z.infer<typeof insertSlotSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
-export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;
 
 // Select types
 export type User = typeof users.$inferSelect;
-export type Service = typeof services.$inferSelect;
+export type Turf = typeof turfs.$inferSelect;
 export type Slot = typeof slots.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
-export type WaitlistEntry = typeof waitlist.$inferSelect;
 
 // Login schema (for validation)
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const registerSchema = insertUserSchema.extend({
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+});
+
+export const profileSchema = z.object({
+  fullName: z.string().min(3, "Full name must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional().nullable(),
+  businessName: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
 });
 
 export type LoginCredentials = z.infer<typeof loginSchema>;
