@@ -69,7 +69,15 @@ export const bookings = pgTable("bookings", {
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertTurfSchema = createInsertSchema(turfs).omit({ id: true });
-export const insertSlotSchema = createInsertSchema(slots).omit({ id: true });
+// Create the slot schema with proper date transformation
+export const insertSlotSchema = createInsertSchema(slots, {
+  startTime: z.string().or(z.date()).transform(val => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
+  endTime: z.string().or(z.date()).transform(val => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
+}).omit({ id: true });
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
 
 // Insert types
