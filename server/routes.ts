@@ -213,10 +213,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
         res.json(filteredSlots);
       } else {
-        // For customers without filters, return all available slots
+        // For customers without filters, return all available slots across all owners and turfs
         console.log("Fetching all available slots (no owner/turf specified)");
-        const slots = await storage.getAvailableSlots();
-        res.json(slots);
+        // Get all slots that are available (not booked)
+        const allAvailableSlots = await storage.getAvailableSlots();
+        console.log(`Found ${allAvailableSlots.length} total available slots`);
+        
+        // Enhance slots with turf information for better display
+        const enhancedSlots = await Promise.all(allAvailableSlots.map(async (slot) => {
+          const turf = await storage.getTurf(slot.turfId);
+          const owner = await storage.getUser(slot.ownerId);
+          return {
+            ...slot,
+            turfName: turf?.name || `Turf #${slot.turfId}`,
+            sportType: turf?.sportType || "Unknown",
+            ownerName: owner?.username || `Owner #${slot.ownerId}`
+          };
+        }));
+        
+        res.json(enhancedSlots);
       }
     } catch (error) {
       console.error("Error fetching slots:", error);

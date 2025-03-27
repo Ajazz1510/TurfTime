@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Slot, Service, InsertBooking } from "@shared/schema";
-import { Clock, Calendar, Search, IndianRupee, Info, Loader2 } from "lucide-react";
+import { Slot, Turf, InsertBooking, sportTypeEnum } from "@shared/schema";
+import { Clock, Calendar, Search, MapPin, IndianRupee, User, Loader2, Zap } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -31,32 +30,53 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+
+// Helper to get price based on sport type
+const getSportPrice = (sportType: string): number => {
+  switch(sportType) {
+    case "cricket": return 400;
+    case "football": return 500;
+    case "badminton": return 500;
+    default: return 0;
+  }
+};
+
+// Helper to get default player count based on sport type
+const getDefaultPlayerCount = (sportType: string): number => {
+  switch(sportType) {
+    case "cricket": return 11;
+    case "football": return 11;
+    case "badminton": return 4;
+    default: return 8;
+  }
+};
 
 export default function CustomerBookings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedOwner, setSelectedOwner] = useState<number | null>(null);
-  const [selectedService, setSelectedService] = useState<number | null>(null);
+  const [selectedSportType, setSelectedSportType] = useState<string | null>(null);
+  const [selectedTurf, setSelectedTurf] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [bookingNotes, setBookingNotes] = useState("");
-  const [activeTab, setActiveTab] = useState("services");
+  const [teamName, setTeamName] = useState(`Team ${user?.username || "Player"}`);
+  const [playerCount, setPlayerCount] = useState<number>(8);
+  const [activeTab, setActiveTab] = useState("turfs");
 
-  // Fetch all services
-  const { data: services, isLoading: servicesLoading } = useQuery<Service[]>({
-    queryKey: ['/api/services'],
+  // Fetch all turfs
+  const { data: turfs, isLoading: turfsLoading } = useQuery<Turf[]>({
+    queryKey: ['/api/turfs'],
   });
 
-  // Get unique owner IDs from services
-  const ownerIds = services 
-    ? [...new Set(services.map(service => service.ownerId))]
-    : [];
-
-  // Fetch available slots based on selected service and owner
-  const { data: slots, isLoading: slotsLoading } = useQuery<Slot[]>({
-    queryKey: ['/api/slots', { available: true, turfId: selectedService, ownerId: selectedOwner }],
-    // Always enabled to get available slots
+  // Fetch available slots (enhanced with turf info from backend)
+  const { data: slots, isLoading: slotsLoading } = useQuery<(Slot & {
+    turfName?: string;
+    sportType?: string;
+    ownerName?: string;
+  })[]>({
+    queryKey: ['/api/slots', { available: true, turfId: selectedTurf }],
     enabled: true,
   });
 
@@ -72,6 +92,7 @@ export default function CustomerBookings() {
         description: "Your booking has been successfully created.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/slots'] });
       setIsDialogOpen(false);
       setSelectedSlot(null);
       setBookingNotes("");
@@ -86,19 +107,19 @@ export default function CustomerBookings() {
   });
 
   // Handle booking confirmation
-  const handleBookService = () => {
-    if (!user || !selectedSlot || !selectedService) return;
+  const handleBookTurf = () => {
+    if (!user || !selectedSlot || !selectedTurf) return;
     
-    const service = services?.find(s => s.id === selectedService);
-    if (!service) return;
+    const turf = turfs?.find(t => t.id === selectedTurf);
+    if (!turf) return;
     
     const bookingData: InsertBooking = {
       customerId: user.id,
       ownerId: selectedSlot.ownerId,
-      turfId: selectedService, // using turfId instead of serviceId
+      turfId: selectedTurf,
       slotId: selectedSlot.id,
-      teamName: "Team " + user.username, // default team name
-      playerCount: service.sportType === "cricket" ? 11 : 8, // default player count
+      teamName: teamName,
+      playerCount: playerCount,
       notes: bookingNotes,
       status: "confirmed"
     };
@@ -107,16 +128,16 @@ export default function CustomerBookings() {
     createBookingMutation.mutate(bookingData);
   };
 
-  // Filter services based on search query
-  const filteredServices = services ? services.filter(service => 
-    service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (selectedOwner ? service.ownerId === selectedOwner : true)
+  // Filter turfs based on search query and selected sport type
+  const filteredTurfs = turfs ? turfs.filter(turf => 
+    (turf.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    turf.location?.toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (selectedSportType ? turf.sportType === selectedSportType : true)
   ) : [];
 
-  // Get filtered slots based on selected service/turf
+  // Get filtered slots based on selected turf
   const filteredSlots = slots ? slots.filter(slot => 
-    selectedService ? slot.turfId === selectedService : true
+    selectedTurf ? slot.turfId === selectedTurf : true
   ) : [];
 
   return (
@@ -124,15 +145,15 @@ export default function CustomerBookings() {
       <Sidebar />
       
       <div className="flex-1 flex flex-col md:ml-64">
-        <Header title="Book Services" />
+        <Header title="Book Turfs" />
         
         <main className="flex-1 p-4 md:p-6 space-y-6">
           {/* Search and filter controls */}
           <Card>
             <CardHeader>
-              <CardTitle>Find and Book Services</CardTitle>
+              <CardTitle>Find and Book a Turf</CardTitle>
               <CardDescription>
-                Browse available services and book an appointment
+                Browse available sports facilities and book your slot
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -140,24 +161,24 @@ export default function CustomerBookings() {
                 <div className="relative w-full md:w-1/2">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search services..."
+                    placeholder="Search by turf name or location..."
                     className="pl-10"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
                 <Select
-                  value={selectedOwner?.toString() || ""}
-                  onValueChange={(value) => setSelectedOwner(value ? parseInt(value) : null)}
+                  value={selectedSportType || ""}
+                  onValueChange={(value) => setSelectedSportType(value || null)}
                 >
                   <SelectTrigger className="w-full md:w-1/3">
-                    <SelectValue placeholder="Filter by business" />
+                    <SelectValue placeholder="Filter by sport" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All businesses</SelectItem>
-                    {ownerIds.map((ownerId) => (
-                      <SelectItem key={ownerId} value={ownerId.toString()}>
-                        Business #{ownerId}
+                    <SelectItem value="">All sports</SelectItem>
+                    {sportTypeEnum.enumValues.map((sport) => (
+                      <SelectItem key={sport} value={sport}>
+                        {sport.charAt(0).toUpperCase() + sport.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -168,67 +189,77 @@ export default function CustomerBookings() {
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="services">Available Services</TabsTrigger>
-              <TabsTrigger value="slots" disabled={!selectedService}>Time Slots</TabsTrigger>
+              <TabsTrigger value="turfs">Available Turfs</TabsTrigger>
+              <TabsTrigger value="slots" disabled={!selectedTurf}>Available Slots</TabsTrigger>
             </TabsList>
             
-            {/* Services Tab */}
-            <TabsContent value="services" className="space-y-4 mt-6">
-              {servicesLoading ? (
+            {/* Turfs Tab */}
+            <TabsContent value="turfs" className="space-y-4 mt-6">
+              {turfsLoading ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <Skeleton key={i} className="h-48 w-full" />
                   ))}
                 </div>
-              ) : filteredServices.length > 0 ? (
+              ) : filteredTurfs.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredServices.map((service) => (
+                  {filteredTurfs.map((turf) => (
                     <Card 
-                      key={service.id} 
-                      className={`cursor-pointer transition-shadow hover:shadow-md ${selectedService === service.id ? 'ring-2 ring-primary' : ''}`}
+                      key={turf.id} 
+                      className={`cursor-pointer transition-shadow hover:shadow-md ${selectedTurf === turf.id ? 'ring-2 ring-primary' : ''}`}
                       onClick={() => {
-                        const newSelectedService = selectedService === service.id ? null : service.id;
-                        setSelectedService(newSelectedService);
-                        if (newSelectedService) {
+                        const newSelectedTurf = selectedTurf === turf.id ? null : turf.id;
+                        setSelectedTurf(newSelectedTurf);
+                        if (newSelectedTurf) {
+                          // Set default player count based on sport type
+                          setPlayerCount(getDefaultPlayerCount(turf.sportType));
                           setActiveTab("slots");
                         }
                       }}
                     >
                       <CardHeader>
-                        <CardTitle>{service.name}</CardTitle>
+                        <div className="flex justify-between items-start">
+                          <CardTitle>{turf.name}</CardTitle>
+                          <Badge variant={turf.sportType === "cricket" ? "default" : 
+                                 turf.sportType === "football" ? "outline" : "secondary"}>
+                            {turf.sportType.charAt(0).toUpperCase() + turf.sportType.slice(1)}
+                          </Badge>
+                        </div>
                         <CardDescription className="line-clamp-2">
-                          {service.description || "No description available"}
+                          {turf.description || "No description available"}
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="flex flex-col space-y-3">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{service.duration} minutes</span>
-                          </div>
+                          {turf.location && (
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                              <span className="text-sm">{turf.location}</span>
+                            </div>
+                          )}
                           <div className="flex items-center">
                             <IndianRupee className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>₹{service.price.toLocaleString()}</span>
+                            <span>₹{getSportPrice(turf.sportType).toLocaleString()} per slot</span>
                           </div>
                           <div className="flex items-center">
-                            <Info className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>Business #{service.ownerId}</span>
+                            <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>Owner #{turf.ownerId}</span>
                           </div>
                         </div>
                       </CardContent>
                       <CardFooter>
                         <Button 
-                          variant={selectedService === service.id ? "default" : "outline"}
+                          variant={selectedTurf === turf.id ? "default" : "outline"}
                           className="w-full"
                           onClick={() => {
-                            const newSelectedService = selectedService === service.id ? null : service.id;
-                            setSelectedService(newSelectedService);
-                            if (newSelectedService) {
+                            const newSelectedTurf = selectedTurf === turf.id ? null : turf.id;
+                            setSelectedTurf(newSelectedTurf);
+                            if (newSelectedTurf) {
                               setActiveTab("slots");
                             }
                           }}
                         >
-                          {selectedService === service.id ? "Selected" : "Select Service"}
+                          {selectedTurf === turf.id ? "Selected" : "Select Turf"}
                         </Button>
                       </CardFooter>
                     </Card>
@@ -237,14 +268,14 @@ export default function CustomerBookings() {
               ) : (
                 <div className="text-center py-10">
                   <Search className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No services found</h3>
+                  <h3 className="text-lg font-medium">No turfs found</h3>
                   <p className="text-muted-foreground mt-2">
-                    Try adjusting your search or filters to find available services.
+                    Try adjusting your search or sport type filter to find available turfs.
                   </p>
                 </div>
               )}
               
-              {selectedService && (
+              {selectedTurf && (
                 <div className="mt-6 text-center">
                   <Button variant="default" onClick={() => setActiveTab("slots")}>
                     View Available Time Slots
@@ -255,22 +286,22 @@ export default function CustomerBookings() {
             
             {/* Slots Tab */}
             <TabsContent value="slots" className="space-y-4 mt-6">
-              {selectedService ? (
+              {selectedTurf ? (
                 <>
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h3 className="text-lg font-medium">
-                        {services?.find(s => s.id === selectedService)?.name}
+                        {turfs?.find(t => t.id === selectedTurf)?.name}
                       </h3>
                       <p className="text-muted-foreground">
                         Select an available time slot
                       </p>
                     </div>
                     <Button variant="outline" onClick={() => {
-                      setSelectedService(null);
-                      setActiveTab("services");
+                      setSelectedTurf(null);
+                      setActiveTab("turfs");
                     }}>
-                      Change Service
+                      Change Turf
                     </Button>
                   </div>
                   
@@ -306,14 +337,16 @@ export default function CustomerBookings() {
                                 variant={selectedSlot?.id === slot.id ? "default" : "outline"}
                                 size="sm"
                                 className="mt-2 w-full"
-                                onClick={() => {
-                                  setSelectedSlot(selectedSlot?.id === slot.id ? null : slot);
-                                  if (selectedSlot?.id !== slot.id) {
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const newSelectedSlot = selectedSlot?.id === slot.id ? null : slot;
+                                  setSelectedSlot(newSelectedSlot);
+                                  if (newSelectedSlot) {
                                     setIsDialogOpen(true);
                                   }
                                 }}
                               >
-                                {selectedSlot?.id === slot.id ? "Selected" : "Select"}
+                                {selectedSlot?.id === slot.id ? "Selected" : "Select & Book"}
                               </Button>
                             </div>
                           </CardContent>
@@ -325,17 +358,17 @@ export default function CustomerBookings() {
                       <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-medium">No available slots</h3>
                       <p className="text-muted-foreground mt-2">
-                        Try selecting a different service or check back later.
+                        Try selecting a different turf or check back later.
                       </p>
                     </div>
                   )}
                 </>
               ) : (
                 <div className="text-center py-10">
-                  <Info className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No service selected</h3>
+                  <Zap className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium">No turf selected</h3>
                   <p className="text-muted-foreground mt-2">
-                    Please select a service first to view available time slots.
+                    Please select a turf first to view available time slots.
                   </p>
                 </div>
               )}
@@ -352,13 +385,13 @@ export default function CustomerBookings() {
                 </DialogDescription>
               </DialogHeader>
               
-              {selectedSlot && selectedService && (
+              {selectedSlot && selectedTurf && (
                 <>
                   <div className="grid gap-4 py-4">
                     <div className="space-y-1">
-                      <Label>Service</Label>
+                      <Label>Turf</Label>
                       <div className="font-medium">
-                        {services?.find(s => s.id === selectedService)?.name}
+                        {turfs?.find(t => t.id === selectedTurf)?.name}
                       </div>
                     </div>
                     
@@ -378,17 +411,48 @@ export default function CustomerBookings() {
                     </div>
                     
                     <div className="space-y-1">
+                      <Label>Sport Type</Label>
+                      <div className="font-medium">
+                        {turfs?.find(t => t.id === selectedTurf)?.sportType.charAt(0).toUpperCase() + 
+                         turfs?.find(t => t.id === selectedTurf)?.sportType.slice(1) || 'Unknown'}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
                       <Label>Price</Label>
                       <div className="font-medium">
-                        ₹{(services?.find(s => s.id === selectedService)?.price || 0).toLocaleString()}
+                        ₹{getSportPrice(turfs?.find(t => t.id === selectedTurf)?.sportType || '').toLocaleString()}
                       </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Label htmlFor="team-name">Team Name</Label>
+                      <Input
+                        id="team-name"
+                        placeholder="Enter your team name"
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Label htmlFor="player-count">Number of Players</Label>
+                      <Input
+                        id="player-count"
+                        type="number"
+                        min={1}
+                        max={30}
+                        placeholder="Enter number of players"
+                        value={playerCount}
+                        onChange={(e) => setPlayerCount(parseInt(e.target.value) || 1)}
+                      />
                     </div>
                     
                     <div className="space-y-1">
                       <Label htmlFor="notes">Additional Notes (Optional)</Label>
                       <Textarea
                         id="notes"
-                        placeholder="Any special requests or information for the service provider"
+                        placeholder="Any special requests or information for the turf owner"
                         value={bookingNotes}
                         onChange={(e) => setBookingNotes(e.target.value)}
                       />
@@ -400,7 +464,7 @@ export default function CustomerBookings() {
                       Cancel
                     </Button>
                     <Button 
-                      onClick={handleBookService} 
+                      onClick={handleBookTurf} 
                       disabled={createBookingMutation.isPending}
                     >
                       {createBookingMutation.isPending ? (
