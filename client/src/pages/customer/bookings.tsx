@@ -41,6 +41,7 @@ export default function CustomerBookings() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [bookingNotes, setBookingNotes] = useState("");
+  const [activeTab, setActiveTab] = useState("services");
 
   // Fetch all services
   const { data: services, isLoading: servicesLoading } = useQuery<Service[]>({
@@ -165,7 +166,7 @@ export default function CustomerBookings() {
             </CardContent>
           </Card>
           
-          <Tabs defaultValue="services">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="services">Available Services</TabsTrigger>
               <TabsTrigger value="slots" disabled={!selectedService}>Time Slots</TabsTrigger>
@@ -185,7 +186,13 @@ export default function CustomerBookings() {
                     <Card 
                       key={service.id} 
                       className={`cursor-pointer transition-shadow hover:shadow-md ${selectedService === service.id ? 'ring-2 ring-primary' : ''}`}
-                      onClick={() => setSelectedService(selectedService === service.id ? null : service.id)}
+                      onClick={() => {
+                        const newSelectedService = selectedService === service.id ? null : service.id;
+                        setSelectedService(newSelectedService);
+                        if (newSelectedService) {
+                          setActiveTab("slots");
+                        }
+                      }}
                     >
                       <CardHeader>
                         <CardTitle>{service.name}</CardTitle>
@@ -213,7 +220,13 @@ export default function CustomerBookings() {
                         <Button 
                           variant={selectedService === service.id ? "default" : "outline"}
                           className="w-full"
-                          onClick={() => setSelectedService(selectedService === service.id ? null : service.id)}
+                          onClick={() => {
+                            const newSelectedService = selectedService === service.id ? null : service.id;
+                            setSelectedService(newSelectedService);
+                            if (newSelectedService) {
+                              setActiveTab("slots");
+                            }
+                          }}
                         >
                           {selectedService === service.id ? "Selected" : "Select Service"}
                         </Button>
@@ -233,7 +246,7 @@ export default function CustomerBookings() {
               
               {selectedService && (
                 <div className="mt-6 text-center">
-                  <Button variant="default" onClick={() => document.querySelector('[value="slots"]')?.dispatchEvent(new Event('click'))}>
+                  <Button variant="default" onClick={() => setActiveTab("slots")}>
                     View Available Time Slots
                   </Button>
                 </div>
@@ -253,7 +266,10 @@ export default function CustomerBookings() {
                         Select an available time slot
                       </p>
                     </div>
-                    <Button variant="outline" onClick={() => setSelectedService(null)}>
+                    <Button variant="outline" onClick={() => {
+                      setSelectedService(null);
+                      setActiveTab("services");
+                    }}>
                       Change Service
                     </Button>
                   </div>
