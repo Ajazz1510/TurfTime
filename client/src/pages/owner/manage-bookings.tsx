@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -50,11 +50,40 @@ export default function ManageBookings() {
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [bookingStatus, setBookingStatus] = useState("");
   const [bookingNotes, setBookingNotes] = useState("");
+  const [customerData, setCustomerData] = useState<Record<number, any>>({});
 
   // Fetch bookings
   const { data: bookings, isLoading: bookingsLoading } = useQuery<Booking[]>({
     queryKey: ['/api/bookings'],
   });
+  
+  // Fetch customer data when bookings change
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      // Get unique customer IDs
+      const customerIds = Array.from(new Set(bookings.map(booking => booking.customerId)));
+      
+      // Fetch customer data for each customer ID
+      Promise.all(
+        customerIds.map(id => 
+          fetch(`/api/users/${id}`)
+            .then(res => res.json())
+            .catch(err => {
+              console.error(`Error fetching customer ${id}:`, err);
+              return null;
+            })
+        )
+      ).then(customersData => {
+        const customerMap: Record<number, any> = {};
+        customersData.forEach(customer => {
+          if (customer && customer.id) {
+            customerMap[customer.id] = customer;
+          }
+        });
+        setCustomerData(customerMap);
+      });
+    }
+  }, [bookings]);
 
   // Fetch turfs for reference
   const { data: turfs, isLoading: turfsLoading } = useQuery<Turf[]>({
@@ -118,6 +147,13 @@ export default function ManageBookings() {
     return foundTurf ? foundTurf.name : "Unknown Turf";
   };
   
+  // Get customer display information
+  const getCustomerDisplay = (customerId: number) => {
+    const customer = customerData[customerId];
+    if (!customer) return `Loading...`;
+    return `${customer.username} (${customer.teamName || 'No team'})`;
+  };
+  
   // Get service ID display
   const getServiceDisplay = (serviceId: string) => {
     return serviceId || "Service ID not available";
@@ -152,7 +188,7 @@ export default function ManageBookings() {
   };
 
   // Filter bookings by status and search query
-  const filteredBookings = bookings?.filter(booking => {
+  const filteredBookings = bookings ? bookings.filter((booking) => {
     const matchesStatus = statusFilter ? booking.status === statusFilter : true;
     // Use serviceId for search instead of service name
     const serviceIdDisplay = booking.serviceId || `TT-${booking.id}`;
@@ -163,13 +199,13 @@ export default function ManageBookings() {
         (booking.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
       : true;
     return matchesStatus && matchesSearch;
-  });
+  }) : [];
 
   // Separate bookings by status
-  const confirmedBookings = filteredBookings?.filter(b => b.status === "confirmed") || [];
-  const completedBookings = filteredBookings?.filter(b => b.status === "completed") || [];
+  const confirmedBookings = filteredBookings.filter((b: Booking) => b.status === "confirmed");
+  const completedBookings = filteredBookings.filter((b: Booking) => b.status === "completed");
   // Note: Database uses "cancelled" but UI uses "canceled"
-  const canceledBookings = filteredBookings?.filter(b => b.status === "cancelled") || [];
+  const canceledBookings = filteredBookings.filter((b: Booking) => b.status === "cancelled");
 
   // Bookings table component
   const BookingsTable = ({ bookings }: { bookings: Booking[] }) => (
@@ -191,7 +227,7 @@ export default function ManageBookings() {
             bookings.map((booking) => (
               <TableRow key={booking.id}>
                 <TableCell className="font-medium">{booking.serviceId || `TT-${booking.id}`}</TableCell>
-                <TableCell>Customer #{booking.customerId}</TableCell>
+                <TableCell>{getCustomerDisplay(booking.customerId)}</TableCell>
                 <TableCell>{getTurfName(booking.turfId)}</TableCell>
                 <TableCell>{getBookingDate(booking)}</TableCell>
                 <TableCell>{getBookingTime(booking)}</TableCell>
@@ -325,7 +361,7 @@ export default function ManageBookings() {
               <Tabs defaultValue="all">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="all">
-                    All ({filteredBookings?.length || 0})
+                    All ({filteredBookings.length})
                   </TabsTrigger>
                   <TabsTrigger value="confirmed">
                     Confirmed ({confirmedBookings.length})
@@ -339,7 +375,7 @@ export default function ManageBookings() {
                 </TabsList>
                 
                 <TabsContent value="all" className="mt-4">
-                  <BookingsTable bookings={filteredBookings || []} />
+                  <BookingsTable bookings={filteredBookings} />
                 </TabsContent>
                 
                 <TabsContent value="confirmed" className="mt-4">
@@ -376,7 +412,7 @@ export default function ManageBookings() {
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Customer</Label>
-                      <div className="text-sm">Customer #{selectedBooking.customerId}</div>
+                      <div className="text-sm">{getCustomerDisplay(selectedBooking.customerId)}</div>
                     </div>
                   </div>
                   

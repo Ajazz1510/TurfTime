@@ -595,6 +595,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { password, ...userProfile } = req.user;
     res.json(userProfile);
   });
+  
+  // Get user by ID route (for fetching customer details)
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove sensitive information
+      const { password, ...userProfile } = user;
+      res.json(userProfile);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
 
   app.put("/api/profile", isAuthenticated, async (req, res) => {
     try {
