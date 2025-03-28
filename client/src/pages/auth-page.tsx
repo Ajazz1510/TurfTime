@@ -107,6 +107,11 @@ export default function AuthPage() {
 
   // Handle login form submission
   const onLoginSubmit = (data: LoginCredentials) => {
+    // For now, we'll just perform regular login
+    // In the future, this will be replaced with OTP verification
+    loginMutation.mutate(data);
+    
+    /* OTP Verification - Commented out until SMS API is integrated
     // Store username for OTP verification
     setOtpUsername(data.username);
     
@@ -115,15 +120,17 @@ export default function AuthPage() {
     
     // Switch to OTP verification tab
     setActiveTab("otp");
+    */
   };
 
   // Handle register form submission
   const onRegisterSubmit = (data: RegisterData) => {
+    // For now, we'll create the user account directly
+    registerMutation.mutate(data);
+    
+    /* OTP Verification - Commented out until SMS API is integrated
     // Store the username for OTP verification
     setOtpUsername(data.username);
-    
-    // Create the user account
-    registerMutation.mutate(data);
     
     // After registration, switch to OTP verification
     setActiveTab("otp");
@@ -133,6 +140,7 @@ export default function AuthPage() {
       // Request OTP for the new account
       requestOtpMutation.mutate({ username: data.username });
     }, 1000);
+    */
   };
 
   // Track whether business owner fields should be displayed
@@ -218,15 +226,15 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={loginMutation.isPending || requestOtpMutation.isPending}
+                        disabled={loginMutation.isPending}
                       >
-                        {loginMutation.isPending || requestOtpMutation.isPending ? (
+                        {loginMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {requestOtpMutation.isPending ? "Sending OTP..." : "Logging in..."}
+                            Logging in...
                           </>
                         ) : (
-                          "Login with OTP"
+                          "Login"
                         )}
                       </Button>
                     </form>
@@ -409,12 +417,12 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={registerMutation.isPending || requestOtpMutation.isPending}
+                        disabled={registerMutation.isPending}
                       >
-                        {registerMutation.isPending || requestOtpMutation.isPending ? (
+                        {registerMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {requestOtpMutation.isPending ? "Sending OTP..." : "Creating account..."}
+                            Creating account...
                           </>
                         ) : (
                           "Create Account"
@@ -459,6 +467,7 @@ export default function AuthPage() {
                           const value = e.target.value.replace(/[^0-9]/g, '');
                           e.target.value = value;
                         }}
+                        disabled={true} // Disabled until OTP API is integrated
                       />
                     </div>
                     
@@ -475,7 +484,7 @@ export default function AuthPage() {
                           });
                         }
                       }}
-                      disabled={verifyOtpMutation.isPending}
+                      disabled={true} // Disabled until OTP API is integrated
                     >
                       {verifyOtpMutation.isPending ? (
                         <>
