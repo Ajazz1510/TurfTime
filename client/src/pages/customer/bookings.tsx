@@ -567,9 +567,18 @@ export default function CustomerBookings() {
                           </span>
                         </div>
                         <Separator className="my-2" />
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Booking Amount:</span>
+                          <span className="text-sm">₹{createdBooking.totalAmount?.toLocaleString() || "0"}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-2 text-sm">
+                          <span className="font-medium">Platform/Service Charge (4%):</span>
+                          <span>₹{Math.round(createdBooking.totalAmount * 0.04).toLocaleString() || "0"}</span>
+                        </div>
+                        <Separator className="my-2" />
                         <div className="flex justify-between items-center text-primary font-bold">
                           <span>Total Amount:</span>
-                          <span>₹{createdBooking.totalAmount?.toLocaleString() || "0"}</span>
+                          <span>₹{Math.round(createdBooking.totalAmount * 1.04).toLocaleString() || "0"}</span>
                         </div>
                       </div>
                       
@@ -678,7 +687,7 @@ export default function CustomerBookings() {
                           Processing...
                         </>
                       ) : (
-                        "Pay ₹" + (createdBooking?.totalAmount || 0)
+                        "Pay ₹" + Math.round((createdBooking?.totalAmount || 0) * 1.04)
                       )}
                     </Button>
                   </DialogFooter>
