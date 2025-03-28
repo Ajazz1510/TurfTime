@@ -176,7 +176,7 @@ export default function ManageBookings() {
 
   // Get booking amount
   const getBookingAmount = (booking: Booking) => {
-    return `₹${Math.round(booking.totalAmount / 1.03 - 10).toLocaleString()}`;
+    return `₹${booking.totalAmount.toLocaleString()}`;
   };
 
 
