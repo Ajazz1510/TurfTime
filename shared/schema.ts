@@ -65,6 +65,7 @@ export const bookings = pgTable("bookings", {
   status: bookingStatusEnum("status").notNull().default("pending"), 
   teamName: text("team_name").notNull(), // Team name is required for turf bookings
   playerCount: integer("player_count").notNull(), // Number of players in booking
+  mobileNumber: text("mobile_number"), // Mobile number for contact (optional for backward compatibility)
   bookingStartTime: timestamp("booking_start_time"), // Custom start time within the slot
   bookingEndTime: timestamp("booking_end_time"), // Custom end time within the slot
   notes: text("notes"),
@@ -91,6 +92,7 @@ export const insertBookingSchema = createInsertSchema(bookings, {
   serviceId: z.string().optional(), // Allow the backend to generate this
   teamName: z.string().min(2, "Team name must be at least 2 characters"),
   playerCount: z.number().int().positive("Player count must be a positive number"),
+  mobileNumber: z.string().min(10, "Mobile number must be at least 10 digits").optional(),
   status: z.enum(bookingStatusEnum.enumValues, {
     errorMap: () => ({ message: `Status must be one of: ${bookingStatusEnum.enumValues.join(', ')}` })
   }),

@@ -102,6 +102,7 @@ export default function CustomerBookings() {
   const [bookingNotes, setBookingNotes] = useState("");
   const [teamName, setTeamName] = useState(`Team ${user?.username || "Player"}`);
   const [playerCount, setPlayerCount] = useState<number>(8);
+  const [mobileNumber, setMobileNumber] = useState("");
   const [activeTab, setActiveTab] = useState("turfs");
   const [selectedStartTime, setSelectedStartTime] = useState<Date | undefined>(undefined);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | undefined>(undefined);
@@ -157,6 +158,7 @@ export default function CustomerBookings() {
       setIsDialogOpen(false);
       setSelectedSlot(null);
       setBookingNotes("");
+      setMobileNumber("");
     },
     onError: (error: Error) => {
       console.error("Booking mutation error:", error);
@@ -210,6 +212,7 @@ export default function CustomerBookings() {
       slotId: selectedSlot.id,
       teamName: teamName,
       playerCount: playerCount,
+      mobileNumber: mobileNumber,
       notes: bookingNotes,
       status: "confirmed",
       bookingStartTime: startTimeISO,
@@ -654,6 +657,17 @@ export default function CustomerBookings() {
                         placeholder="Enter number of players"
                         value={playerCount}
                         onChange={(e) => setPlayerCount(parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Label htmlFor="mobile-number">Mobile Number</Label>
+                      <Input
+                        id="mobile-number"
+                        type="tel"
+                        placeholder="Enter your mobile number"
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value)}
                       />
                     </div>
                     

@@ -199,7 +199,8 @@ export default function ManageBookings() {
       ? serviceIdDisplay.toLowerCase().includes(searchQuery.toLowerCase()) || 
         booking.id.toString().includes(searchQuery) ||
         booking.customerId.toString().includes(searchQuery) ||
-        (booking.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+        (booking.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (booking.mobileNumber?.includes(searchQuery) ?? false)
       : true;
     return matchesStatus && matchesSearch;
   }) : [];
@@ -218,6 +219,7 @@ export default function ManageBookings() {
           <TableRow>
             <TableHead>Service ID</TableHead>
             <TableHead>Customer</TableHead>
+            <TableHead>Mobile</TableHead>
             <TableHead>Turf</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Time</TableHead>
@@ -231,6 +233,7 @@ export default function ManageBookings() {
               <TableRow key={booking.id}>
                 <TableCell className="font-medium">{booking.serviceId || `TT-${booking.id}`}</TableCell>
                 <TableCell>{getCustomerDisplay(booking.customerId, booking)}</TableCell>
+                <TableCell>{booking.mobileNumber || "Not provided"}</TableCell>
                 <TableCell>{getTurfName(booking.turfId)}</TableCell>
                 <TableCell>{getBookingDate(booking)}</TableCell>
                 <TableCell>{getBookingTime(booking)}</TableCell>
@@ -281,7 +284,7 @@ export default function ManageBookings() {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No bookings found.
               </TableCell>
             </TableRow>
@@ -335,7 +338,7 @@ export default function ManageBookings() {
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="search"
-                      placeholder="Search by service name, booking ID..."
+                      placeholder="Search by service ID, customer, mobile number..."
                       className="pl-10"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -431,9 +434,15 @@ export default function ManageBookings() {
                       </div>
                     </div>
                   </div>
-                  <div className="mb-4">
-                    <Label className="text-sm font-medium">Turf</Label>
-                    <div className="text-sm">{getTurfName(selectedBooking.turfId)}</div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <Label className="text-sm font-medium">Turf</Label>
+                      <div className="text-sm">{getTurfName(selectedBooking.turfId)}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Mobile Number</Label>
+                      <div className="text-sm">{selectedBooking.mobileNumber || "Not provided"}</div>
+                    </div>
                   </div>
                   
                   <div className="mb-4">
