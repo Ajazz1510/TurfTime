@@ -715,7 +715,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Booking is not in payment_pending status" });
       }
       
-      // In a real app, we would integrate with a payment gateway here
+      // PAYMENT GATEWAY INTEGRATION SECTION
+      // When a real payment gateway is available, replace the code below with actual integration
+      
+      // Example integration points for payment gateway:
+      // 1. Initialize payment with gateway (create order/transaction)
+      // if (process.env.PAYMENT_GATEWAY_KEY) {
+      //   const paymentGateway = new PaymentGatewayClient(process.env.PAYMENT_GATEWAY_KEY);
+      //   const gatewayResponse = await paymentGateway.createTransaction({
+      //     amount: booking.totalAmount,
+      //     currency: "INR",
+      //     orderId: booking.serviceId,
+      //     customerId: booking.customerId,
+      //     paymentMethod: paymentMethod,
+      //     ...paymentDetails
+      //   });
+      //   
+      //   // Process gateway response
+      //   if (gatewayResponse.status === "success") {
+      //     // Update payment status based on gateway response
+      //   } else {
+      //     return res.status(400).json({ 
+      //       message: "Payment failed",
+      //       gatewayError: gatewayResponse.error
+      //     });
+      //   }
+      // }
+      
       // For now, we'll simulate a successful payment
 
       // Generate a payment ID

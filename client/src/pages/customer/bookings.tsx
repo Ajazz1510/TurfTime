@@ -223,7 +223,7 @@ export default function CustomerBookings() {
       playerCount: playerCount,
       mobileNumber: mobileNumber,
       notes: bookingNotes,
-      // The server will set the status to payment_pending
+      status: "payment_pending",
       bookingStartTime: startTimeISO,
       bookingEndTime: endTimeISO
     };
@@ -574,6 +574,13 @@ export default function CustomerBookings() {
                       </div>
                       
                       <div className="space-y-4">
+                        <div className="p-2 mb-2 bg-primary/10 rounded-md border border-primary/20">
+                          <p className="text-xs text-primary-foreground">
+                            <strong>Note:</strong> This is currently a simulated payment system. 
+                            Ready for integration with a real payment gateway when available.
+                          </p>
+                        </div>
+                        
                         <div className="space-y-2">
                           <Label htmlFor="payment-method">Payment Method</Label>
                           <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
@@ -871,14 +878,18 @@ export default function CustomerBookings() {
                     </div>
                     
                     <div className="space-y-1">
-                      <Label htmlFor="mobile-number">Mobile Number</Label>
+                      <Label htmlFor="mobile-number">Mobile Number (required)</Label>
                       <Input
                         id="mobile-number"
                         type="tel"
-                        placeholder="Enter your mobile number"
+                        placeholder="Enter 10-digit mobile number"
                         value={mobileNumber}
                         onChange={(e) => setMobileNumber(e.target.value)}
+                        required
                       />
+                      {mobileNumber && mobileNumber.length < 10 && (
+                        <p className="text-sm text-destructive mt-1">Mobile number must be at least 10 digits</p>
+                      )}
                     </div>
                     
                     <div className="space-y-1">
@@ -898,7 +909,7 @@ export default function CustomerBookings() {
                     </Button>
                     <Button 
                       onClick={handleBookTurf} 
-                      disabled={createBookingMutation.isPending}
+                      disabled={createBookingMutation.isPending || !mobileNumber || mobileNumber.length < 10}
                     >
                       {createBookingMutation.isPending ? (
                         <>
