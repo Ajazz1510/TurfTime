@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Clock } from 'lucide-react';
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-  Button, Badge, Label, Input, Textarea,
-} from '@/components/ui';
+import { Card } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
+import { CardHeader } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { DialogContent } from "@/components/ui/dialog";
+import { DialogDescription } from "@/components/ui/dialog";
+import { DialogHeader } from "@/components/ui/dialog";
+import { DialogTitle } from "@/components/ui/dialog";
+import { Select } from "@/components/ui/select";
+import { SelectContent } from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
+import { SelectTrigger } from "@/components/ui/select";
+import { SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from '@/lib/api';
 import type { Turf, Slot, Booking } from "@shared/schema"; // Import from original code
 
