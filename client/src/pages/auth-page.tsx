@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth, RegisterData } from "@/hooks/use-auth";
-import { LoginCredentials } from "@shared/schema";
+import { LoginCredentials, RequestOtp, OtpVerification } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -68,9 +68,10 @@ const registerFormSchema = z.object({
 );
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "register" | "otp">("login");
+  const [otpUsername, setOtpUsername] = useState<string>("");
   const [, setLocation] = useLocation();
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerMutation, requestOtpMutation, verifyOtpMutation } = useAuth();
 
   // Redirect if user is already logged in
   if (user) {
@@ -106,12 +107,32 @@ export default function AuthPage() {
 
   // Handle login form submission
   const onLoginSubmit = (data: LoginCredentials) => {
-    loginMutation.mutate(data);
+    // Store username for OTP verification
+    setOtpUsername(data.username);
+    
+    // Request OTP instead of direct login
+    requestOtpMutation.mutate({ username: data.username });
+    
+    // Switch to OTP verification tab
+    setActiveTab("otp");
   };
 
   // Handle register form submission
   const onRegisterSubmit = (data: RegisterData) => {
+    // Store the username for OTP verification
+    setOtpUsername(data.username);
+    
+    // Create the user account
     registerMutation.mutate(data);
+    
+    // After registration, switch to OTP verification
+    setActiveTab("otp");
+    
+    // We do this with a small delay to ensure the user is created first
+    setTimeout(() => {
+      // Request OTP for the new account
+      requestOtpMutation.mutate({ username: data.username });
+    }, 1000);
   };
 
   // Track whether business owner fields should be displayed
@@ -148,7 +169,7 @@ export default function AuthPage() {
             <p className="text-gray-400">Sign in or create an account to get started</p>
           </div>
           
-          <Tabs defaultValue="login" value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
+          <Tabs defaultValue="login" value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register" | "otp")}>
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
@@ -197,15 +218,15 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={loginMutation.isPending}
+                        disabled={loginMutation.isPending || requestOtpMutation.isPending}
                       >
-                        {loginMutation.isPending ? (
+                        {loginMutation.isPending || requestOtpMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Logging in...
+                            {requestOtpMutation.isPending ? "Sending OTP..." : "Logging in..."}
                           </>
                         ) : (
-                          "Login"
+                          "Login with OTP"
                         )}
                       </Button>
                     </form>
@@ -388,12 +409,12 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={registerMutation.isPending}
+                        disabled={registerMutation.isPending || requestOtpMutation.isPending}
                       >
-                        {registerMutation.isPending ? (
+                        {registerMutation.isPending || requestOtpMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating account...
+                            {requestOtpMutation.isPending ? "Sending OTP..." : "Creating account..."}
                           </>
                         ) : (
                           "Create Account"
@@ -410,6 +431,86 @@ export default function AuthPage() {
                     >
                       Login
                     </button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* OTP Verification Form */}
+            <TabsContent value="otp">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Verify Your Account</CardTitle>
+                  <CardDescription>
+                    Enter the one-time password (OTP) sent to your phone
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="otp">One-Time Password</Label>
+                      <Input 
+                        id="otp" 
+                        placeholder="Enter OTP code" 
+                        className="text-center text-xl tracking-widest" 
+                        maxLength={6}
+                        onChange={(e) => {
+                          // Only allow numbers
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          e.target.value = value;
+                        }}
+                      />
+                    </div>
+                    
+                    <Button 
+                      className="w-full"
+                      onClick={() => {
+                        // Get the OTP value
+                        const otpInput = document.getElementById('otp') as HTMLInputElement;
+                        if (otpInput && otpInput.value.length === 6) {
+                          // Submit OTP verification
+                          verifyOtpMutation.mutate({
+                            username: otpUsername,
+                            otp: otpInput.value
+                          });
+                        }
+                      }}
+                      disabled={verifyOtpMutation.isPending}
+                    >
+                      {verifyOtpMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        "Verify"
+                      )}
+                    </Button>
+                    
+                    <div className="text-center">
+                      <span className="text-sm text-gray-500">
+                        Didn't receive the code? 
+                        <button 
+                          className="text-primary hover:underline ml-1 font-medium"
+                          onClick={() => {
+                            // Request a new OTP
+                            requestOtpMutation.mutate({ username: otpUsername });
+                          }}
+                          disabled={requestOtpMutation.isPending}
+                        >
+                          {requestOtpMutation.isPending ? "Sending..." : "Resend"}
+                        </button>
+                      </span>
+                    </div>
+                    
+                    <div className="text-center">
+                      <button 
+                        className="text-sm text-gray-500 hover:underline"
+                        onClick={() => setActiveTab("login")}
+                      >
+                        Return to login
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

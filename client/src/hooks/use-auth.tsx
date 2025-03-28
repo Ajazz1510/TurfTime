@@ -9,7 +9,11 @@ import {
   User as SelectUser, 
   InsertUser, 
   loginSchema, 
-  LoginCredentials
+  LoginCredentials,
+  otpVerificationSchema,
+  requestOtpSchema,
+  OtpVerification,
+  RequestOtp
 } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +25,9 @@ type AuthContextType = {
   error: Error | null;
   loginMutation: UseMutationResult<Omit<SelectUser, "password">, Error, LoginCredentials>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<Omit<SelectUser, "password">, Error, InsertUser>;
+  registerMutation: UseMutationResult<Omit<SelectUser, "password">, Error, RegisterData>;
+  requestOtpMutation: UseMutationResult<{message: string, otp: string}, Error, RequestOtp>;
+  verifyOtpMutation: UseMutationResult<Omit<SelectUser, "password">, Error, OtpVerification>;
 };
 
 // Extend the insert schema with validation
@@ -113,6 +119,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
+  
+  const requestOtpMutation = useMutation({
+    mutationFn: async (data: RequestOtp) => {
+      const res = await apiRequest("POST", "/api/request-otp", data);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "OTP sent",
+        description: "A one-time password has been sent to your phone.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "OTP request failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (data: OtpVerification) => {
+      const res = await apiRequest("POST", "/api/verify-otp", data);
+      return await res.json();
+    },
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Verification successful",
+        description: `Welcome back, ${user.fullName}!`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Verification failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <AuthContext.Provider
@@ -123,6 +170,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        requestOtpMutation,
+        verifyOtpMutation,
       }}
     >
       {children}

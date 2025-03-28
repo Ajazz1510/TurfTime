@@ -24,6 +24,10 @@ export const users = pgTable("users", {
   phone: text("phone"),
   address: text("address"),
   city: text("city"),
+  // OTP related fields
+  otp: text("otp"),
+  otpExpiry: timestamp("otp_expiry"),
+  isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -135,6 +139,17 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+// OTP verification schema
+export const otpVerificationSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+});
+
+// Request OTP schema
+export const requestOtpSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+});
+
 export const registerSchema = insertUserSchema.extend({
   confirmPassword: z.string()
 }).refine(data => data.password === data.confirmPassword, {
@@ -152,3 +167,5 @@ export const profileSchema = z.object({
 });
 
 export type LoginCredentials = z.infer<typeof loginSchema>;
+export type OtpVerification = z.infer<typeof otpVerificationSchema>;
+export type RequestOtp = z.infer<typeof requestOtpSchema>;

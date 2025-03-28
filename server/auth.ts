@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser, InsertUser } from "@shared/schema";
+import { User as SelectUser, InsertUser, otpVerificationSchema, requestOtpSchema } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -19,6 +19,19 @@ async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
+}
+
+// Generate a 6-digit OTP
+function generateOTP(): string {
+  // Generate a 6-digit number between 100000 and 999999
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Set OTP expiry time (15 minutes from now)
+function getOTPExpiry(): Date {
+  const expiryTime = new Date();
+  expiryTime.setMinutes(expiryTime.getMinutes() + 15);
+  return expiryTime;
 }
 
 async function comparePasswords(supplied: string, stored: string) {
@@ -118,13 +131,13 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: Express.User, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
       
-      req.login(user, (err) => {
+      req.login(user, (err: any) => {
         if (err) return next(err);
         
         // Remove password from response
@@ -135,7 +148,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
-    req.logout((err) => {
+    req.logout((err: any) => {
       if (err) return next(err);
       res.sendStatus(200);
     });
@@ -147,5 +160,60 @@ export function setupAuth(app: Express) {
     // Remove password from response
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
+  });
+  
+  // OTP APIs
+  app.post("/api/request-otp", async (req, res, next) => {
+    try {
+      // Validate request
+      const data = requestOtpSchema.parse(req.body);
+      const { username } = data;
+      
+      // Check if user exists
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Generate OTP
+      const otp = generateOTP();
+      
+      // Save OTP to user record
+      await storage.setUserOTP(username, otp);
+      
+      // In a production environment, you would send this OTP via SMS/email
+      // For development, we'll just return it in the response
+      res.status(200).json({ 
+        message: "OTP generated successfully",
+        otp // In production, you wouldn't include this in the response
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.post("/api/verify-otp", async (req, res, next) => {
+    try {
+      // Validate request
+      const data = otpVerificationSchema.parse(req.body);
+      const { username, otp } = data;
+      
+      // Verify OTP
+      const user = await storage.verifyUserOTP(username, otp);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+      
+      // Login the user
+      req.login(user, (err: any) => {
+        if (err) return next(err);
+        
+        // Remove password from response
+        const { password, ...userWithoutPassword } = user;
+        res.status(200).json(userWithoutPassword);
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 }

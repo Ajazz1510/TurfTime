@@ -21,6 +21,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   
+  // OTP operations
+  setUserOTP(username: string, otp: string): Promise<User | undefined>;
+  verifyUserOTP(username: string, otp: string): Promise<User | undefined>;
+  
   // Turf operations
   getTurf(id: number): Promise<Turf | undefined>;
   getTurfsByOwner(ownerId: number): Promise<Turf[]>;
@@ -89,6 +93,53 @@ export class PostgresStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return result[0];
+  }
+  
+  // OTP operations
+  async setUserOTP(username: string, otp: string): Promise<User | undefined> {
+    // Find the user
+    const user = await this.getUserByUsername(username);
+    if (!user) return undefined;
+    
+    // Calculate OTP expiry (15 minutes from now)
+    const otpExpiry = new Date();
+    otpExpiry.setMinutes(otpExpiry.getMinutes() + 15);
+    
+    // Update user with OTP and expiry
+    const result = await db.update(users)
+      .set({
+        otp,
+        otpExpiry
+      })
+      .where(eq(users.id, user.id))
+      .returning();
+      
+    return result[0];
+  }
+  
+  async verifyUserOTP(username: string, otp: string): Promise<User | undefined> {
+    // Find the user
+    const user = await this.getUserByUsername(username);
+    if (!user) return undefined;
+    
+    // Check if OTP matches and is not expired
+    const now = new Date();
+    
+    if (user.otp === otp && user.otpExpiry && now < user.otpExpiry) {
+      // OTP is valid, clear it and return the user
+      const result = await db.update(users)
+        .set({
+          otp: null,
+          otpExpiry: null,
+          isVerified: true
+        })
+        .where(eq(users.id, user.id))
+        .returning();
+        
+      return result[0];
+    }
+    
+    return undefined;
   }
   
   // Turf operations
