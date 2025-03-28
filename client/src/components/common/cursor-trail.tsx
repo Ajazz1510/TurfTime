@@ -25,8 +25,8 @@ export default function CursorTrail({
   className,
   color = "rgb(255, 255, 255)", // White color for particles
   particleCount = 35,
-  particleSize = 45,  // Extremely large particles
-  particleDecayRate = 0.01  // Even slower decay rate for much longer trails
+  particleSize = 35,  // Large particles
+  particleDecayRate = 0.03  // Faster decay rate for shorter trails
 }: CursorTrailProps) {
   const [points, setPoints] = useState<Point[]>([]);
   const [isEnabled, setIsEnabled] = useState(true);
@@ -83,8 +83,8 @@ export default function CursorTrail({
         const offsetX = Math.cos(angle) * distance;
         const offsetY = Math.sin(angle) * distance;
         
-        // For white smoke, we keep hue at 0 but might add subtle variations
-        const hueVariation = baseColor.h;
+        // Calculate hue variation (green to yellow-green)
+        const hueVariation = baseColor.h + (Math.random() * 20 - 10);
         
         newPoints.push({
           x: x + offsetX,
@@ -177,12 +177,12 @@ export default function CursorTrail({
     <div className={`pointer-events-none fixed inset-0 z-50 overflow-hidden ${className}`}>
       {/* Main cursor dot */}
       <motion.div
-        className="absolute rounded-full bg-white/60 blur-sm"
+        className="absolute rounded-full bg-primary/60 blur-sm"
         style={{
           left: mousePosition.x,
           top: mousePosition.y,
-          width: '12px',
-          height: '12px',
+          width: '10px',
+          height: '10px',
           transform: 'translate(-50%, -50%)',
         }}
       />
