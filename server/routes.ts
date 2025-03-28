@@ -483,10 +483,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Slot and turf mismatch" });
       }
 
-      // Set owner ID from the slot
+      // Generate a unique service ID (format: TT-[current year]-[5 digit random number])
+      const currentYear = new Date().getFullYear();
+      const randomDigits = Math.floor(10000 + Math.random() * 90000); // 5 digit random number
+      const serviceId = `TT-${currentYear}-${randomDigits}`;
+      
+      // Set owner ID from the slot and add the service ID
       const bookingData = {
         ...req.body,
-        ownerId: slot.ownerId
+        ownerId: slot.ownerId,
+        serviceId: serviceId
       };
       console.log("Final booking data:", JSON.stringify(bookingData));
 

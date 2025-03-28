@@ -5,7 +5,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import Sidebar from "@/components/dashboard/sidebar";
 import Header from "@/components/dashboard/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Booking, Service, Slot } from "@shared/schema";
+import { Booking, Slot, Turf } from "@shared/schema";
 import { format, parseISO } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -56,9 +56,9 @@ export default function ManageBookings() {
     queryKey: ['/api/bookings'],
   });
 
-  // Fetch services for reference
-  const { data: services, isLoading: servicesLoading } = useQuery<Service[]>({
-    queryKey: ['/api/services', { ownerId: user?.id }],
+  // Fetch turfs for reference
+  const { data: turfs, isLoading: turfsLoading } = useQuery<Turf[]>({
+    queryKey: ['/api/turfs', { ownerId: user?.id }],
   });
 
   // Fetch slots for reference
@@ -111,28 +111,28 @@ export default function ManageBookings() {
     }
   });
 
-  // Get service name by ID
-  const getServiceName = (serviceId: number) => {
-    if (!services) return "Loading...";
-    const service = services.find(s => s.id === serviceId);
-    return service ? service.name : "Unknown Service";
+  // Get turf name by ID
+  const getTurfName = (turfId: number) => {
+    if (!turfs) return "Loading...";
+    const foundTurf = turfs.find((t) => t.id === turfId);
+    return foundTurf ? foundTurf.name : "Unknown Turf";
+  };
+  
+  // Get service ID display
+  const getServiceDisplay = (serviceId: string) => {
+    return serviceId || "Service ID not available";
   };
 
-  // Get slot time by ID
-  const getSlotTime = (slotId: number) => {
-    if (!slots) return "Loading...";
-    const slot = slots.find(s => s.id === slotId);
-    if (!slot) return "Unknown Time";
-    
-    return `${format(new Date(slot.startTime), 'h:mm a')} - ${format(new Date(slot.endTime), 'h:mm a')}`;
+  // Format booking time directly from booking data rather than slot
+  const getBookingTime = (booking: Booking) => {
+    if (!booking.bookingStartTime || !booking.bookingEndTime) return "Not specified";
+    return `${format(new Date(booking.bookingStartTime), 'h:mm a')} - ${format(new Date(booking.bookingEndTime), 'h:mm a')}`;
   };
 
-  // Get slot date by ID
-  const getSlotDate = (slotId: number) => {
-    if (!slots) return "Loading...";
-    const slot = slots.find(s => s.id === slotId);
-    if (!slot) return "Unknown Date";
-    return format(new Date(slot.startTime), 'MMMM d, yyyy');
+  // Get booking date directly from booking data
+  const getBookingDate = (booking: Booking) => {
+    if (!booking.bookingStartTime) return "Not specified";
+    return format(new Date(booking.bookingStartTime), 'MMMM d, yyyy');
   };
 
   // Handle booking update
@@ -154,9 +154,10 @@ export default function ManageBookings() {
   // Filter bookings by status and search query
   const filteredBookings = bookings?.filter(booking => {
     const matchesStatus = statusFilter ? booking.status === statusFilter : true;
-    const serviceName = getServiceName(booking.serviceId).toLowerCase();
+    // Use serviceId for search instead of service name
+    const serviceIdDisplay = booking.serviceId || `TT-${booking.id}`;
     const matchesSearch = searchQuery 
-      ? serviceName.includes(searchQuery.toLowerCase()) || 
+      ? serviceIdDisplay.toLowerCase().includes(searchQuery.toLowerCase()) || 
         booking.id.toString().includes(searchQuery) ||
         booking.customerId.toString().includes(searchQuery) ||
         (booking.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
@@ -175,9 +176,9 @@ export default function ManageBookings() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
+            <TableHead>Service ID</TableHead>
             <TableHead>Customer</TableHead>
-            <TableHead>Service</TableHead>
+            <TableHead>Turf</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Time</TableHead>
             <TableHead>Status</TableHead>
@@ -188,11 +189,11 @@ export default function ManageBookings() {
           {bookings.length > 0 ? (
             bookings.map((booking) => (
               <TableRow key={booking.id}>
-                <TableCell className="font-medium">{booking.id}</TableCell>
+                <TableCell className="font-medium">{booking.serviceId || `TT-${booking.id}`}</TableCell>
                 <TableCell>Customer #{booking.customerId}</TableCell>
-                <TableCell>{getServiceName(booking.serviceId)}</TableCell>
-                <TableCell>{getSlotDate(booking.slotId)}</TableCell>
-                <TableCell>{getSlotTime(booking.slotId)}</TableCell>
+                <TableCell>{getTurfName(booking.turfId)}</TableCell>
+                <TableCell>{getBookingDate(booking)}</TableCell>
+                <TableCell>{getBookingTime(booking)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={
@@ -251,7 +252,7 @@ export default function ManageBookings() {
   );
 
   // Loading state
-  if (bookingsLoading || servicesLoading || slotsLoading) {
+  if (bookingsLoading || turfsLoading || slotsLoading) {
     return (
       <div className="flex min-h-screen bg-background">
         <Sidebar />
@@ -380,15 +381,19 @@ export default function ManageBookings() {
                   
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <Label className="text-sm font-medium">Service</Label>
-                      <div className="text-sm">{getServiceName(selectedBooking.serviceId)}</div>
+                      <Label className="text-sm font-medium">Service ID</Label>
+                      <div className="text-sm">{selectedBooking.serviceId || `TT-${selectedBooking.id}`}</div>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Date & Time</Label>
                       <div className="text-sm">
-                        {getSlotDate(selectedBooking.slotId)}, {getSlotTime(selectedBooking.slotId)}
+                        {getBookingDate(selectedBooking)}, {getBookingTime(selectedBooking)}
                       </div>
                     </div>
+                  </div>
+                  <div className="mb-4">
+                    <Label className="text-sm font-medium">Turf</Label>
+                    <div className="text-sm">{getTurfName(selectedBooking.turfId)}</div>
                   </div>
                   
                   <div className="mb-4">

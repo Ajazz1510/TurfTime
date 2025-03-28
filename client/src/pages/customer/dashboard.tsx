@@ -80,13 +80,21 @@ export default function CustomerDashboard() {
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                           <span className="text-sm">
-                            {format(new Date(booking.createdAt), 'MMMM d, yyyy')}
+                            Booking date: {format(new Date(booking.bookingStartTime), 'MMMM d, yyyy')}
                           </span>
                         </div>
                         
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-sm">Service ID: {booking.serviceId}</span>
+                          <span className="text-sm">
+                            Booking time: {format(new Date(booking.bookingStartTime), 'h:mm a')} to {format(new Date(booking.bookingEndTime), 'h:mm a')}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <span className="font-medium text-sm bg-primary/10 text-primary px-2 py-1 rounded">
+                            Service ID: {booking.serviceId || `TT-${booking.id}`}
+                          </span>
                         </div>
                         
                         {booking.notes && (

@@ -57,6 +57,7 @@ export const slots = pgTable("slots", {
 // Bookings table
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
+  serviceId: text("service_id").notNull(), // Unique service ID for customer reference
   customerId: integer("customer_id").notNull(),
   ownerId: integer("owner_id").notNull(),
   turfId: integer("turf_id").notNull(), // Renamed from serviceId
@@ -87,6 +88,7 @@ export const insertSlotSchema = createInsertSchema(slots, {
 }).omit({ id: true });
 // Enhanced booking schema with more detailed validation and better date handling
 export const insertBookingSchema = createInsertSchema(bookings, {
+  serviceId: z.string().nonempty("Service ID is required"),
   teamName: z.string().min(2, "Team name must be at least 2 characters"),
   playerCount: z.number().int().positive("Player count must be a positive number"),
   status: z.enum(bookingStatusEnum.enumValues, {

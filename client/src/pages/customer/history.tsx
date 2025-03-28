@@ -93,18 +93,22 @@ export default function CustomerHistory() {
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
             <span className="text-sm">
-              Created on {format(new Date(booking.createdAt || new Date()), 'MMMM d, yyyy')}
+              Booking date: {format(new Date(booking.bookingStartTime || new Date()), 'MMMM d, yyyy')}
             </span>
           </div>
           
-          {booking.date && (
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span className="text-sm">
-                {booking.slot && `Slot booked for ${format(new Date(booking.slot.startTime), 'MMMM d, yyyy')} at ${format(new Date(booking.slot.startTime), 'h:mm a')} - ${format(new Date(booking.slot.endTime), 'h:mm a')}`}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center">
+            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span className="text-sm">
+              Booking time: {format(new Date(booking.bookingStartTime || new Date()), 'h:mm a')} to {format(new Date(booking.bookingEndTime || new Date()), 'h:mm a')}
+            </span>
+          </div>
+          
+          <div className="flex items-center">
+            <span className="font-medium text-sm bg-primary/10 text-primary px-2 py-1 rounded">
+              Service ID: {booking.serviceId || `TT-${booking.id}`}
+            </span>
+          </div>
           
           {booking.notes && (
             <div className="text-sm text-muted-foreground border-t pt-2 mt-2">
