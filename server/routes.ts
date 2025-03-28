@@ -489,11 +489,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const randomDigits = Math.floor(10000 + Math.random() * 90000); // 5 digit random number
       const serviceId = `TT-${currentYear}-${randomDigits}`;
       
-      // Set owner ID from the slot and add the service ID
+      // Calculate total amount for the booking based on turf price and duration
+      const bookingStartTime = new Date(req.body.bookingStartTime);
+      const bookingEndTime = new Date(req.body.bookingEndTime);
+      const durationHours = Math.ceil((bookingEndTime.getTime() - bookingStartTime.getTime()) / (1000 * 60 * 60));
+      const totalAmount = turf.price * durationHours;
+      
+      // Set owner ID from the slot and add the service ID and payment information
       const bookingData = {
         ...req.body,
         ownerId: slot.ownerId,
-        serviceId: serviceId
+        serviceId: serviceId,
+        status: "payment_pending", // Initial status is payment_pending
+        totalAmount: totalAmount,
+        paymentStatus: "pending"
       };
       console.log("Final booking data:", JSON.stringify(bookingData));
 
@@ -505,7 +514,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateSlot(slot.id, { isBooked: true });
       console.log(`Slot ${slot.id} marked as booked`);
       
-      res.status(201).json(booking);
+      res.status(201).json({
+        ...booking,
+        totalAmount: totalAmount
+      });
     } catch (error) {
       console.error("Error creating booking:", error);
       res.status(500).json({ message: "Failed to create booking", error: String(error) });
@@ -678,6 +690,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Payment processing endpoints
+  app.post("/api/payments/process", isCustomer, async (req, res) => {
+    try {
+      const { bookingId, paymentMethod, paymentDetails } = req.body;
+      
+      if (!bookingId || !paymentMethod) {
+        return res.status(400).json({ message: "Missing required payment information" });
+      }
+      
+      // Get the booking
+      const booking = await storage.getBooking(Number(bookingId));
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Verify that the booking belongs to the current user
+      if (booking.customerId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized to process payment for this booking" });
+      }
+      
+      // Verify that the booking is in payment_pending status
+      if (booking.status !== "payment_pending") {
+        return res.status(400).json({ message: "Booking is not in payment_pending status" });
+      }
+      
+      // In a real app, we would integrate with a payment gateway here
+      // For now, we'll simulate a successful payment
+
+      // Generate a payment ID
+      const paymentId = `PAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      
+      // Update booking with payment information
+      const updatedBooking = await storage.updateBooking(booking.id, {
+        paymentId,
+        paymentMethod,
+        paymentStatus: "success",
+        paymentDetails: paymentDetails || {},
+        status: "confirmed", // Change booking status to confirmed
+        paidAt: new Date()
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Payment processed successfully",
+        booking: updatedBooking
+      });
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      res.status(500).json({ message: "Failed to process payment", error: String(error) });
+    }
+  });
+  
+  // Endpoint to get payment information for a booking
+  app.get("/api/payments/:bookingId", isAuthenticated, async (req, res) => {
+    try {
+      const bookingId = Number(req.params.bookingId);
+      const booking = await storage.getBooking(bookingId);
+      
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Ensure user has permission to view this booking's payment
+      if (
+        (req.user.role === "owner" && booking.ownerId !== req.user.id) ||
+        (req.user.role === "customer" && booking.customerId !== req.user.id)
+      ) {
+        return res.status(403).json({ message: "Unauthorized to view this booking's payment" });
+      }
+      
+      // Get turf information for price calculation
+      const turf = await storage.getTurf(booking.turfId);
+      if (!turf) {
+        return res.status(404).json({ message: "Turf information not found" });
+      }
+      
+      // Calculate the booking duration in hours
+      const bookingStartTime = new Date(booking.bookingStartTime);
+      const bookingEndTime = new Date(booking.bookingEndTime);
+      const durationHours = Math.ceil((bookingEndTime.getTime() - bookingStartTime.getTime()) / (1000 * 60 * 60));
+      
+      // Calculate total amount if not already set
+      const totalAmount = booking.totalAmount || (turf.price * durationHours);
+      
+      // Return payment information
+      res.json({
+        bookingId: booking.id,
+        serviceId: booking.serviceId,
+        turfName: turf.name,
+        sportType: turf.sportType,
+        bookingStartTime: booking.bookingStartTime,
+        bookingEndTime: booking.bookingEndTime,
+        durationHours,
+        pricePerHour: turf.price,
+        totalAmount,
+        paymentStatus: booking.paymentStatus || "pending",
+        paymentId: booking.paymentId,
+        paymentMethod: booking.paymentMethod,
+        paidAt: booking.paidAt
+      });
+    } catch (error) {
+      console.error("Error getting payment information:", error);
+      res.status(500).json({ message: "Failed to get payment information", error: String(error) });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;

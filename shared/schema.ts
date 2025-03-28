@@ -9,7 +9,10 @@ export const userRoleEnum = pgEnum("user_role", ["customer", "owner"]);
 export const sportTypeEnum = pgEnum("sport_type", ["cricket", "football", "badminton"]);
 
 // Define booking status 
-export const bookingStatusEnum = pgEnum("booking_status", ["pending", "confirmed", "cancelled", "completed"]);
+export const bookingStatusEnum = pgEnum("booking_status", ["pending", "payment_pending", "confirmed", "cancelled", "completed"]);
+
+// Define payment status
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "success", "failed", "refunded"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -73,6 +76,13 @@ export const bookings = pgTable("bookings", {
   bookingStartTime: timestamp("booking_start_time"), // Custom start time within the slot
   bookingEndTime: timestamp("booking_end_time"), // Custom end time within the slot
   notes: text("notes"),
+  totalAmount: integer("total_amount"), // Total amount to be paid (in rupees)
+  // Payment-related fields
+  paymentId: text("payment_id"), // Payment gateway transaction ID
+  paymentStatus: paymentStatusEnum("payment_status").default("pending"),
+  paymentMethod: text("payment_method"), // UPI, card, etc.
+  paymentDetails: jsonb("payment_details").default({}), // Additional payment details
+  paidAt: timestamp("paid_at"), // When payment was completed
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -113,7 +123,11 @@ export const insertBookingSchema = createInsertSchema(bookings, {
     z.date()
   ]),
   notes: z.string().optional(),
-}).omit({ id: true, createdAt: true });
+  totalAmount: z.number().int().nonnegative().optional(),
+  paymentStatus: z.enum(paymentStatusEnum.enumValues).optional(),
+  paymentMethod: z.string().optional(),
+  paymentDetails: z.record(z.any()).optional(),
+}).omit({ id: true, createdAt: true, paymentId: true, paidAt: true });
 
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;

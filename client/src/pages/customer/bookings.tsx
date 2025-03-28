@@ -31,6 +31,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 // Helper to get hourly price based on sport type
 const getHourlyPrice = (sportType: string): number => {
@@ -106,6 +107,9 @@ export default function CustomerBookings() {
   const [activeTab, setActiveTab] = useState("turfs");
   const [selectedStartTime, setSelectedStartTime] = useState<Date | undefined>(undefined);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | undefined>(undefined);
+  const [createdBooking, setCreatedBooking] = useState<any>(null); // To store newly created booking for payment
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("upi");
 
   // Fetch all turfs
   const { data: turfs, isLoading: turfsLoading } = useQuery<Turf[]>({
@@ -150,15 +154,20 @@ export default function CustomerBookings() {
     onSuccess: (data) => {
       console.log("Booking success callback with data:", data);
       toast({
-        title: "Booking confirmed!",
-        description: "Your booking has been successfully created.",
+        title: "Booking created!",
+        description: "Please complete payment to confirm your booking.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/slots'] });
+      // Store the created booking data for payment processing
+      setCreatedBooking(data);
+      // Show payment dialog
+      setShowPaymentDialog(true);
+      // Close booking dialog
       setIsDialogOpen(false);
-      setSelectedSlot(null);
-      setBookingNotes("");
-      setMobileNumber("");
+      
+      // Don't reset these until payment is complete
+      // setSelectedSlot(null);
+      // setBookingNotes("");
+      // setMobileNumber("");
     },
     onError: (error: Error) => {
       console.error("Booking mutation error:", error);
@@ -214,7 +223,7 @@ export default function CustomerBookings() {
       playerCount: playerCount,
       mobileNumber: mobileNumber,
       notes: bookingNotes,
-      status: "confirmed",
+      // The server will set the status to payment_pending
       bookingStartTime: startTimeISO,
       bookingEndTime: endTimeISO
     };
@@ -469,6 +478,207 @@ export default function CustomerBookings() {
               )}
             </TabsContent>
           </Tabs>
+
+          {/* Payment processing mutation */}
+          {(() => {
+            const processPaymentMutation = useMutation({
+              mutationFn: async (paymentData: any) => {
+                console.log("Processing payment with data:", paymentData);
+                const res = await apiRequest("POST", "/api/payments/process", paymentData);
+                if (!res.ok) {
+                  const errorData = await res.json();
+                  throw new Error(errorData.message || "Payment processing failed");
+                }
+                return await res.json();
+              },
+              onSuccess: (data) => {
+                console.log("Payment processed successfully:", data);
+                toast({
+                  title: "Payment successful!",
+                  description: "Your booking has been confirmed.",
+                });
+                // Close payment dialog
+                setShowPaymentDialog(false);
+                // Reset form
+                setSelectedSlot(null);
+                setBookingNotes("");
+                setMobileNumber("");
+                // Reset booking data
+                setCreatedBooking(null);
+                // Refresh bookings data
+                queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+              },
+              onError: (error: Error) => {
+                console.error("Payment processing error:", error);
+                toast({
+                  title: "Payment failed",
+                  description: error.message || "There was an error processing your payment. Please try again.",
+                  variant: "destructive",
+                });
+              }
+            });
+
+            // Handle payment submission
+            const handlePaymentSubmit = () => {
+              if (!createdBooking) return;
+              
+              const paymentData = {
+                bookingId: createdBooking.id,
+                paymentMethod: selectedPaymentMethod,
+                paymentDetails: {
+                  upiId: "customer@ybl", // This would normally be collected from the user
+                  transactionTime: new Date().toISOString()
+                }
+              };
+              
+              processPaymentMutation.mutate(paymentData);
+            };
+            
+            // Render payment dialog
+            return (
+              <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Complete Your Payment</DialogTitle>
+                    <DialogDescription>
+                      Please choose a payment method to complete your booking.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  {createdBooking && (
+                    <div className="py-4">
+                      <div className="mb-4 p-4 bg-muted rounded-md">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Service ID:</span>
+                          <span className="text-sm">{createdBooking.serviceId}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Turf:</span>
+                          <span className="text-sm">{turfs?.find(t => t.id === createdBooking.turfId)?.name}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Date:</span>
+                          <span className="text-sm">{format(new Date(createdBooking.bookingStartTime), 'MMMM d, yyyy')}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Time:</span>
+                          <span className="text-sm">
+                            {format(new Date(createdBooking.bookingStartTime), 'h:mm a')} - {format(new Date(createdBooking.bookingEndTime), 'h:mm a')}
+                          </span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between items-center text-primary font-bold">
+                          <span>Total Amount:</span>
+                          <span>₹{createdBooking.totalAmount?.toLocaleString() || "0"}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-method">Payment Method</Label>
+                          <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                            <SelectTrigger id="payment-method">
+                              <SelectValue placeholder="Select Payment Method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="upi">UPI</SelectItem>
+                              <SelectItem value="netbanking">Net Banking</SelectItem>
+                              <SelectItem value="card">Credit/Debit Card</SelectItem>
+                              <SelectItem value="wallet">Digital Wallet</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {selectedPaymentMethod === 'upi' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="upi-id">UPI ID</Label>
+                            <Input id="upi-id" placeholder="yourname@bank" defaultValue="customer@ybl" />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Enter your UPI ID to proceed with the payment.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {selectedPaymentMethod === 'card' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="card-number">Card Number</Label>
+                            <Input id="card-number" placeholder="XXXX XXXX XXXX XXXX" />
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <Label htmlFor="expiry">Expiry</Label>
+                                <Input id="expiry" placeholder="MM/YY" />
+                              </div>
+                              <div>
+                                <Label htmlFor="cvv">CVV</Label>
+                                <Input id="cvv" placeholder="XXX" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {selectedPaymentMethod === 'netbanking' && (
+                          <div className="space-y-2">
+                            <Label>Select Bank</Label>
+                            <Select defaultValue="sbi">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Bank" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="sbi">State Bank of India</SelectItem>
+                                <SelectItem value="hdfc">HDFC Bank</SelectItem>
+                                <SelectItem value="icici">ICICI Bank</SelectItem>
+                                <SelectItem value="axis">Axis Bank</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        
+                        {selectedPaymentMethod === 'wallet' && (
+                          <div className="space-y-2">
+                            <Label>Select Wallet</Label>
+                            <Select defaultValue="paytm">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Wallet" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="paytm">Paytm</SelectItem>
+                                <SelectItem value="phonepe">PhonePe</SelectItem>
+                                <SelectItem value="gpay">Google Pay</SelectItem>
+                                <SelectItem value="amazonpay">Amazon Pay</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setShowPaymentDialog(false);
+                      // Cancel booking if payment is cancelled
+                      // This would be handled by a background job in a real application
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handlePaymentSubmit}
+                      disabled={processPaymentMutation.isPending}
+                    >
+                      {processPaymentMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                          Processing...
+                        </>
+                      ) : (
+                        "Pay ₹" + (createdBooking?.totalAmount || 0)
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            );
+          })()}
 
           {/* Booking confirmation dialog */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
