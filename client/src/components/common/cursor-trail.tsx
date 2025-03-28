@@ -34,7 +34,7 @@ export default function CursorTrail({
   
   // Convert the CSS color to HSL components for variation
   const baseColor = useMemo(() => {
-    return { h: 0, s: 0, l: 100 }; // White color in HSL
+    return { h: 142, s: 77, l: 58 }; // Approximate HSL values for the green primary
   }, [color]);
   
   useEffect(() => {
