@@ -174,6 +174,12 @@ export default function ManageBookings() {
     return format(new Date(booking.bookingStartTime), 'MMMM d, yyyy');
   };
 
+  // Get booking amount
+  const getBookingAmount = (booking: Booking) => {
+    return `₹${Math.round(booking.totalAmount / 1.03 - 10).toLocaleString()}`;
+  };
+
+
   // Handle booking update
   const handleUpdateBooking = () => {
     if (!selectedBooking) return;
@@ -223,7 +229,7 @@ export default function ManageBookings() {
             <TableHead>Turf</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Time</TableHead>
-            <TableHead>Base Amount</TableHead>
+            <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -238,7 +244,7 @@ export default function ManageBookings() {
                 <TableCell>{getTurfName(booking.turfId)}</TableCell>
                 <TableCell>{getBookingDate(booking)}</TableCell>
                 <TableCell>{getBookingTime(booking)}</TableCell>
-                <TableCell>₹{Math.round(booking.totalAmount / 1.03 - 10).toLocaleString()}</TableCell>
+                <TableCell>{getBookingAmount(booking)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={
@@ -286,7 +292,7 @@ export default function ManageBookings() {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center">
+              <TableCell colSpan={10} className="h-24 text-center">
                 No bookings found.
               </TableCell>
             </TableRow>

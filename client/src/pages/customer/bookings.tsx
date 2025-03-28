@@ -687,7 +687,7 @@ export default function CustomerBookings() {
                           Processing...
                         </>
                       ) : (
-                        "Pay ₹" + Math.round((createdBooking?.totalAmount || 0) * 1.04)
+                        "Pay ₹" + Math.round((createdBooking?.totalAmount * 1.03) + 10)
                       )}
                     </Button>
                   </DialogFooter>
