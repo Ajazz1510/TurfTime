@@ -47,8 +47,8 @@ const calculateTotalPrice = (sportType: string, startTime: Date, endTime: Date):
   const hourlyRate = getHourlyPrice(sportType);
   const durationMs = endTime.getTime() - startTime.getTime();
   const durationHours = durationMs / (1000 * 60 * 60);
-  // Round up to nearest half hour
-  const roundedHours = Math.ceil(durationHours * 2) / 2;
+  // Round up to the next full hour
+  const roundedHours = Math.ceil(durationHours);
   return hourlyRate * roundedHours;
 };
 
@@ -615,7 +615,7 @@ export default function CustomerBookings() {
                         const totalPrice = calculateTotalPrice(sportType, start, end);
                         
                         const durationMs = end.getTime() - start.getTime();
-                        const durationHours = Math.ceil((durationMs / (1000 * 60 * 60)) * 2) / 2;
+                        const durationHours = Math.ceil(durationMs / (1000 * 60 * 60));
                         
                         return (
                           <div className="font-medium">
@@ -624,6 +624,9 @@ export default function CustomerBookings() {
                             </div>
                             <div className="text-sm text-muted-foreground">
                               ₹{hourlyRate}/hr × {durationHours} {durationHours === 1 ? 'hour' : 'hours'}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              *Price rounded to the next full hour
                             </div>
                           </div>
                         );
