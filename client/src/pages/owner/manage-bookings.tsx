@@ -148,10 +148,13 @@ export default function ManageBookings() {
   };
   
   // Get customer display information
-  const getCustomerDisplay = (customerId: number) => {
+  const getCustomerDisplay = (customerId: number, booking?: Booking) => {
     const customer = customerData[customerId];
     if (!customer) return `Loading...`;
-    return `${customer.username} (${customer.teamName || 'No team'})`;
+    
+    // If booking is provided, use its teamName, otherwise display "No team"
+    const teamName = booking?.teamName || 'No team';
+    return `${customer.username} (${teamName})`;
   };
   
   // Get service ID display
@@ -227,7 +230,7 @@ export default function ManageBookings() {
             bookings.map((booking) => (
               <TableRow key={booking.id}>
                 <TableCell className="font-medium">{booking.serviceId || `TT-${booking.id}`}</TableCell>
-                <TableCell>{getCustomerDisplay(booking.customerId)}</TableCell>
+                <TableCell>{getCustomerDisplay(booking.customerId, booking)}</TableCell>
                 <TableCell>{getTurfName(booking.turfId)}</TableCell>
                 <TableCell>{getBookingDate(booking)}</TableCell>
                 <TableCell>{getBookingTime(booking)}</TableCell>
@@ -412,7 +415,7 @@ export default function ManageBookings() {
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Customer</Label>
-                      <div className="text-sm">{getCustomerDisplay(selectedBooking.customerId)}</div>
+                      <div className="text-sm">{getCustomerDisplay(selectedBooking.customerId, selectedBooking)}</div>
                     </div>
                   </div>
                   
