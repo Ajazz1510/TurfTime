@@ -56,13 +56,13 @@ export default function ManageBookings() {
   const { data: bookings, isLoading: bookingsLoading } = useQuery<Booking[]>({
     queryKey: ['/api/bookings'],
   });
-  
+
   // Fetch customer data when bookings change
   useEffect(() => {
     if (bookings && bookings.length > 0) {
       // Get unique customer IDs
       const customerIds = Array.from(new Set(bookings.map(booking => booking.customerId)));
-      
+
       // Fetch customer data for each customer ID
       Promise.all(
         customerIds.map(id => 
@@ -146,17 +146,17 @@ export default function ManageBookings() {
     const foundTurf = turfs.find((t) => t.id === turfId);
     return foundTurf ? foundTurf.name : "Unknown Turf";
   };
-  
+
   // Get customer display information
   const getCustomerDisplay = (customerId: number, booking?: Booking) => {
     const customer = customerData[customerId];
     if (!customer) return `Loading...`;
-    
+
     // If booking is provided, use its teamName, otherwise display "No team"
     const teamName = booking?.teamName || 'No team';
     return `${customer.username} (${teamName})`;
   };
-  
+
   // Get service ID display
   const getServiceDisplay = (serviceId: string) => {
     return serviceId || "Service ID not available";
@@ -177,16 +177,16 @@ export default function ManageBookings() {
   // Handle booking update
   const handleUpdateBooking = () => {
     if (!selectedBooking) return;
-    
+
     const updateData: { status?: string, notes?: string } = {};
     if (bookingStatus) updateData.status = bookingStatus;
     if (bookingNotes !== selectedBooking.notes) updateData.notes = bookingNotes;
-    
+
     if (Object.keys(updateData).length === 0) {
       setIsUpdateDialogOpen(false);
       return;
     }
-    
+
     updateBookingMutation.mutate({ id: selectedBooking.id, data: updateData });
   };
 
@@ -223,6 +223,7 @@ export default function ManageBookings() {
             <TableHead>Turf</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Time</TableHead>
+            <TableHead>Base Amount</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -237,6 +238,7 @@ export default function ManageBookings() {
                 <TableCell>{getTurfName(booking.turfId)}</TableCell>
                 <TableCell>{getBookingDate(booking)}</TableCell>
                 <TableCell>{getBookingTime(booking)}</TableCell>
+                <TableCell>₹{Math.round(booking.totalAmount / 1.03 - 10).toLocaleString()}</TableCell>
                 <TableCell>
                   <Badge
                     variant={
@@ -284,7 +286,7 @@ export default function ManageBookings() {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={9} className="h-24 text-center">
                 No bookings found.
               </TableCell>
             </TableRow>
@@ -318,10 +320,10 @@ export default function ManageBookings() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col md:ml-64">
         <Header title="Manage Bookings" />
-        
+
         <main className="flex-1 p-4 md:p-6 space-y-6">
           <Card>
             <CardHeader>
@@ -363,7 +365,7 @@ export default function ManageBookings() {
                   </Select>
                 </div>
               </div>
-              
+
               <Tabs defaultValue="all">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="all">
@@ -379,26 +381,26 @@ export default function ManageBookings() {
                     Cancelled ({canceledBookings.length})
                   </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="all" className="mt-4">
                   <BookingsTable bookings={filteredBookings} />
                 </TabsContent>
-                
+
                 <TabsContent value="confirmed" className="mt-4">
                   <BookingsTable bookings={confirmedBookings} />
                 </TabsContent>
-                
+
                 <TabsContent value="completed" className="mt-4">
                   <BookingsTable bookings={completedBookings} />
                 </TabsContent>
-                
+
                 <TabsContent value="cancelled" className="mt-4">
                   <BookingsTable bookings={canceledBookings} />
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
-          
+
           {/* Update Booking Dialog */}
           <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
             <DialogContent className="sm:max-w-[550px]">
@@ -408,7 +410,7 @@ export default function ManageBookings() {
                   Update the status or notes for this booking
                 </DialogDescription>
               </DialogHeader>
-              
+
               {selectedBooking && (
                 <div className="py-4">
                   <div className="grid grid-cols-2 gap-4 mb-4">
@@ -421,7 +423,7 @@ export default function ManageBookings() {
                       <div className="text-sm">{getCustomerDisplay(selectedBooking.customerId, selectedBooking)}</div>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <Label className="text-sm font-medium">Service ID</Label>
@@ -444,7 +446,7 @@ export default function ManageBookings() {
                       <div className="text-sm">{selectedBooking.mobileNumber || "Not provided"}</div>
                     </div>
                   </div>
-                  
+
                   <div className="mb-4">
                     <Label htmlFor="status" className="text-sm font-medium">Status</Label>
                     <Select
@@ -461,7 +463,7 @@ export default function ManageBookings() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="mb-4">
                     <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
                     <Textarea
@@ -475,7 +477,7 @@ export default function ManageBookings() {
                   </div>
                 </div>
               )}
-              
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>
                   Cancel
