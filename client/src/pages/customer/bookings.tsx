@@ -67,20 +67,20 @@ const getDefaultPlayerCount = (sportType: string): number => {
 const generateTimeOptions = (startTime: Date, endTime: Date, intervalMinutes: number = 30): string[] => {
   const options: string[] = [];
   const currentTime = new Date(startTime);
-  
+
   while (currentTime < endTime) {
     const hours = currentTime.getHours().toString().padStart(2, '0');
     const minutes = currentTime.getMinutes().toString().padStart(2, '0');
     options.push(`${hours}:${minutes}`);
-    
+
     currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
   }
-  
+
   // Add the end time as the last option
   const endHours = endTime.getHours().toString().padStart(2, '0');
   const endMinutes = endTime.getMinutes().toString().padStart(2, '0');
   options.push(`${endHours}:${endMinutes}`);
-  
+
   return options;
 };
 
@@ -110,6 +110,10 @@ export default function CustomerBookings() {
   const [createdBooking, setCreatedBooking] = useState<any>(null); // To store newly created booking for payment
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("upi");
+  const [showTimeDialog, setShowTimeDialog] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+
 
   // Fetch all turfs
   const { data: turfs, isLoading: turfsLoading } = useQuery<Turf[]>({
@@ -130,19 +134,19 @@ export default function CustomerBookings() {
   const createBookingMutation = useMutation({
     mutationFn: async (bookingData: any) => {
       console.log("Submitting booking request with data:", JSON.stringify(bookingData));
-      
+
       try {
         const res = await apiRequest("POST", "/api/bookings", bookingData);
-        
+
         // Log the response for debugging
         console.log("Booking response status:", res.status);
-        
+
         if (!res.ok) {
           const errorData = await res.json();
           console.error("Booking error response:", errorData);
           throw new Error(errorData.message || 'Failed to create booking');
         }
-        
+
         const data = await res.json();
         console.log("Booking created successfully:", data);
         return data;
@@ -163,7 +167,7 @@ export default function CustomerBookings() {
       setShowPaymentDialog(true);
       // Close booking dialog
       setIsDialogOpen(false);
-      
+
       // Don't reset these until payment is complete
       // setSelectedSlot(null);
       // setBookingNotes("");
@@ -182,23 +186,23 @@ export default function CustomerBookings() {
   // Handle booking confirmation
   const handleBookTurf = () => {
     if (!user || !selectedSlot || !selectedTurf) return;
-    
+
     const turf = turfs?.find(t => t.id === selectedTurf);
     if (!turf) return;
-    
+
     // Use custom selected times or default to slot's start/end times
     let bookingStartTime = selectedStartTime || new Date(selectedSlot.startTime);
     let bookingEndTime = selectedEndTime || new Date(selectedSlot.endTime);
-    
+
     // Make sure we're using actual Date objects
     if (!(bookingStartTime instanceof Date)) {
       bookingStartTime = new Date(bookingStartTime);
     }
-    
+
     if (!(bookingEndTime instanceof Date)) {
       bookingEndTime = new Date(bookingEndTime);
     }
-    
+
     // Make sure the dates are valid
     if (isNaN(bookingStartTime.getTime()) || isNaN(bookingEndTime.getTime())) {
       toast({
@@ -208,11 +212,11 @@ export default function CustomerBookings() {
       });
       return;
     }
-    
+
     // Convert to ISO strings
     const startTimeISO = bookingStartTime.toISOString();
     const endTimeISO = bookingEndTime.toISOString();
-    
+
     // Service ID is now generated on the server side
     const bookingData = {
       customerId: user.id,
@@ -227,7 +231,7 @@ export default function CustomerBookings() {
       bookingStartTime: startTimeISO,
       bookingEndTime: endTimeISO
     };
-    
+
     console.log("Creating booking with data:", bookingData);
     createBookingMutation.mutate(bookingData);
   };
@@ -247,10 +251,10 @@ export default function CustomerBookings() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col md:ml-64">
         <Header title="Book Turfs" />
-        
+
         <main className="flex-1 p-4 md:p-6 space-y-6">
           {/* Search and filter controls */}
           <Card>
@@ -290,13 +294,13 @@ export default function CustomerBookings() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="turfs">Available Turfs</TabsTrigger>
               <TabsTrigger value="slots" disabled={!selectedTurf}>Available Slots</TabsTrigger>
             </TabsList>
-            
+
             {/* Turfs Tab */}
             <TabsContent value="turfs" className="space-y-4 mt-6">
               {turfsLoading ? (
@@ -378,7 +382,7 @@ export default function CustomerBookings() {
                   </p>
                 </div>
               )}
-              
+
               {selectedTurf && (
                 <div className="mt-6 text-center">
                   <Button variant="default" onClick={() => setActiveTab("slots")}>
@@ -387,7 +391,7 @@ export default function CustomerBookings() {
                 </div>
               )}
             </TabsContent>
-            
+
             {/* Slots Tab */}
             <TabsContent value="slots" className="space-y-4 mt-6">
               {selectedTurf ? (
@@ -408,7 +412,7 @@ export default function CustomerBookings() {
                       Change Turf
                     </Button>
                   </div>
-                  
+
                   {slotsLoading ? (
                     <div className="grid gap-4 md:grid-cols-3">
                       {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -521,7 +525,7 @@ export default function CustomerBookings() {
             // Handle payment submission
             const handlePaymentSubmit = () => {
               if (!createdBooking) return;
-              
+
               const paymentData = {
                 bookingId: createdBooking.id,
                 paymentMethod: selectedPaymentMethod,
@@ -530,10 +534,10 @@ export default function CustomerBookings() {
                   transactionTime: new Date().toISOString()
                 }
               };
-              
+
               processPaymentMutation.mutate(paymentData);
             };
-            
+
             // Render payment dialog
             return (
               <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
@@ -544,7 +548,7 @@ export default function CustomerBookings() {
                       Please choose a payment method to complete your booking.
                     </DialogDescription>
                   </DialogHeader>
-                  
+
                   {createdBooking && (
                     <div className="py-4">
                       <div className="mb-4 p-4 bg-muted rounded-md">
@@ -581,7 +585,7 @@ export default function CustomerBookings() {
                           <span>₹{Math.round((createdBooking.totalAmount * 1.03) + 10).toLocaleString() || "0"}</span>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-4">
                         <div className="p-2 mb-2 bg-primary/10 rounded-md border border-primary/20">
                           <p className="text-xs text-primary-foreground">
@@ -589,7 +593,7 @@ export default function CustomerBookings() {
                             Ready for integration with a real payment gateway when available.
                           </p>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="payment-method">Payment Method</Label>
                           <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
@@ -604,7 +608,7 @@ export default function CustomerBookings() {
                             </SelectContent>
                           </Select>
                         </div>
-                        
+
                         {selectedPaymentMethod === 'upi' && (
                           <div className="space-y-2">
                             <Label htmlFor="upi-id">UPI ID</Label>
@@ -614,7 +618,7 @@ export default function CustomerBookings() {
                             </p>
                           </div>
                         )}
-                        
+
                         {selectedPaymentMethod === 'card' && (
                           <div className="space-y-2">
                             <Label htmlFor="card-number">Card Number</Label>
@@ -631,7 +635,7 @@ export default function CustomerBookings() {
                             </div>
                           </div>
                         )}
-                        
+
                         {selectedPaymentMethod === 'netbanking' && (
                           <div className="space-y-2">
                             <Label>Select Bank</Label>
@@ -648,7 +652,7 @@ export default function CustomerBookings() {
                             </Select>
                           </div>
                         )}
-                        
+
                         {selectedPaymentMethod === 'wallet' && (
                           <div className="space-y-2">
                             <Label>Select Wallet</Label>
@@ -668,7 +672,7 @@ export default function CustomerBookings() {
                       </div>
                     </div>
                   )}
-                  
+
                   <DialogFooter>
                     <Button variant="outline" onClick={() => {
                       setShowPaymentDialog(false);
@@ -705,7 +709,7 @@ export default function CustomerBookings() {
                   Please review the details of your booking below.
                 </DialogDescription>
               </DialogHeader>
-              
+
               {selectedSlot && selectedTurf && (
                 <>
                   <div className="grid gap-4 py-4">
@@ -715,7 +719,7 @@ export default function CustomerBookings() {
                         {turfs?.find(t => t.id === selectedTurf)?.name}
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <Label>Date</Label>
@@ -728,7 +732,7 @@ export default function CustomerBookings() {
                         <div className="font-medium">
                           {format(new Date(selectedSlot.startTime), 'h:mm a')} - {format(new Date(selectedSlot.endTime), 'h:mm a')}
                         </div>
-                        
+
                         <div className="pt-2">
                           <Label>Select Your Booking Time</Label>
                           <div className="grid grid-cols-2 gap-4 mt-2">
@@ -752,7 +756,7 @@ export default function CustomerBookings() {
                                     const start = new Date(selectedSlot.startTime);
                                     const end = new Date(selectedSlot.endTime);
                                     const currentTime = new Date(start);
-                                    
+
                                     while (currentTime < end) {
                                       const timeStr = format(currentTime, 'HH:mm');
                                       options.push(
@@ -762,7 +766,7 @@ export default function CustomerBookings() {
                                       );
                                       currentTime.setMinutes(currentTime.getMinutes() + 30);
                                     }
-                                    
+
                                     // Add the end time as the last option
                                     const endTimeStr = format(end, 'HH:mm');
                                     options.push(
@@ -770,7 +774,7 @@ export default function CustomerBookings() {
                                         {format(end, 'h:mm a')}
                                       </SelectItem>
                                     );
-                                    
+
                                     return options;
                                   })()}
                                 </SelectContent>
@@ -796,7 +800,7 @@ export default function CustomerBookings() {
                                     const start = selectedStartTime || new Date(selectedSlot.startTime);
                                     const end = new Date(selectedSlot.endTime);
                                     const currentTime = new Date(start);
-                                    
+
                                     while (currentTime < end) {
                                       const timeStr = format(currentTime, 'HH:mm');
                                       options.push(
@@ -806,15 +810,15 @@ export default function CustomerBookings() {
                                       );
                                       currentTime.setMinutes(currentTime.getMinutes() + 30);
                                     }
-                                    
+
                                     // Add the end time as the last option
                                     const endTimeStr = format(end, 'HH:mm');
-                                    options.push(
+                               options.push(
                                       <SelectItem key={`end-${endTimeStr}`} value={endTimeStr}>
                                         {format(end, 'h:mm a')}
                                       </SelectItem>
                                     );
-                                    
+
                                     return options;
                                   })()}
                                 </SelectContent>
@@ -824,7 +828,7 @@ export default function CustomerBookings() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1">
                       <Label>Sport Type</Label>
                       <div className="font-medium">
@@ -834,7 +838,7 @@ export default function CustomerBookings() {
                         })()}
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1">
                       <Label>Price Details</Label>
                       {(() => {
@@ -843,10 +847,10 @@ export default function CustomerBookings() {
                         const end = selectedEndTime || new Date(selectedSlot.endTime);
                         const hourlyRate = getHourlyPrice(sportType);
                         const totalPrice = calculateTotalPrice(sportType, start, end);
-                        
+
                         const durationMs = end.getTime() - start.getTime();
                         const durationHours = Math.ceil(durationMs / (1000 * 60 * 60));
-                        
+
                         return (
                           <div className="font-medium">
                             <div className="text-primary">
@@ -862,7 +866,7 @@ export default function CustomerBookings() {
                         );
                       })()}
                     </div>
-                    
+
                     <div className="space-y-1">
                       <Label htmlFor="team-name">Team Name</Label>
                       <Input
@@ -872,7 +876,7 @@ export default function CustomerBookings() {
                         onChange={(e) => setTeamName(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-1">
                       <Label htmlFor="player-count">Number of Players</Label>
                       <Input
@@ -885,7 +889,7 @@ export default function CustomerBookings() {
                         onChange={(e) => setPlayerCount(parseInt(e.target.value) || 1)}
                       />
                     </div>
-                    
+
                     <div className="space-y-1">
                       <Label htmlFor="mobile-number">Mobile Number (required)</Label>
                       <Input
@@ -900,7 +904,7 @@ export default function CustomerBookings() {
                         <p className="text-sm text-destructive mt-1">Mobile number must be at least 10 digits</p>
                       )}
                     </div>
-                    
+
                     <div className="space-y-1">
                       <Label htmlFor="notes">Additional Notes (Optional)</Label>
                       <Textarea
@@ -911,7 +915,7 @@ export default function CustomerBookings() {
                       />
                     </div>
                   </div>
-                  
+
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancel
