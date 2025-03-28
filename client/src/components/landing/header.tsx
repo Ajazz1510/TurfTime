@@ -23,7 +23,7 @@ export default function Header() {
         </Button>
       );
     }
-    
+
     return (
       <div className="flex space-x-2">
         <Button asChild variant="outline" className="border-green-600 text-green-500 hover:text-green-400">
@@ -55,21 +55,15 @@ export default function Header() {
               </Link>
             </div>
           </div>
-          
+
           <nav className="hidden sm:ml-6 sm:flex sm:space-x-8 items-center">
-            <a href="#sports" className="border-transparent text-gray-300 hover:border-green-500 hover:text-white inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-              <Footprints className="h-4 w-4 mr-1" /> Sports
-            </a>
-            <a href="#explore" className="border-transparent text-gray-300 hover:border-green-500 hover:text-white inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-              <Sparkles className="h-4 w-4 mr-1" /> Explore
-            </a>
             <a href="#how-it-works" className="border-transparent text-gray-300 hover:border-green-500 hover:text-white inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
               <Clock className="h-4 w-4 mr-1" /> How It Works
             </a>
-            
+
             {renderAuthButton()}
           </nav>
-          
+
           <div className="flex items-center sm:hidden">
             <button
               type="button"
@@ -93,20 +87,6 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="sm:hidden" id="mobile-menu">
           <div className="pt-2 pb-3 space-y-1 bg-black border-b border-green-900/40">
-            <a
-              href="#sports"
-              className="border-transparent text-gray-300 hover:bg-gray-900 hover:border-green-500 hover:text-white block pl-3 pr-4 py-2 border-l-4 text-base font-medium flex items-center"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <Footprints className="h-5 w-5 mr-2" /> Sports
-            </a>
-            <a
-              href="#explore"
-              className="border-transparent text-gray-300 hover:bg-gray-900 hover:border-green-500 hover:text-white block pl-3 pr-4 py-2 border-l-4 text-base font-medium flex items-center"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <Sparkles className="h-5 w-5 mr-2" /> Explore
-            </a>
             <a
               href="#how-it-works"
               className="border-transparent text-gray-300 hover:bg-gray-900 hover:border-green-500 hover:text-white block pl-3 pr-4 py-2 border-l-4 text-base font-medium flex items-center"
