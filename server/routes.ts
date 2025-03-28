@@ -761,6 +761,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Available slots
       const availableSlots = slots.filter(slot => !slot.isBooked).length;
       
+      // Calculate transaction stats
+      const successfulBookings = bookings.filter(b => b.paymentStatus === "success");
+      const totalTransactions = successfulBookings.length;
+      const totalAmount = successfulBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+      
+      // Calculate monthly stats
+      const now = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const monthlyTransactions = successfulBookings.filter(b => 
+        b.paidAt?.toString().startsWith(thisMonth)
+      ).length;
+      const monthlyAmount = successfulBookings
+        .filter(b => b.paidAt?.toString().startsWith(thisMonth))
+        .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+      // Calculate last 12 months stats
+      const last12Months = Array.from({length: 12}, (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }).reverse();
+
+      const monthlyStats = last12Months.map(month => ({
+        month,
+        transactions: successfulBookings.filter(b => 
+          b.paidAt?.toString().startsWith(month)
+        ).length,
+        amount: successfulBookings
+          .filter(b => b.paidAt?.toString().startsWith(month))
+          .reduce((sum, b) => sum + (b.totalAmount || 0), 0)
+      }));
+
       res.json({
         totalBookings,
         bookingsByStatus,
@@ -768,7 +800,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         upcomingBookings,
         totalTurfs: turfs.length,
         totalSlots: slots.length,
-        availableSlots
+        availableSlots,
+        totalTransactions,
+        totalAmount,
+        monthlyTransactions,
+        monthlyAmount,
+        monthlyStats
       });
     } catch (error) {
       console.error("Error getting statistics:", error);

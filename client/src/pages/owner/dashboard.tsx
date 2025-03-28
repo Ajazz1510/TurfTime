@@ -18,6 +18,11 @@ interface DashboardStats {
   totalServices: number;
   totalSlots: number;
   availableSlots: number;
+  totalTransactions: number;
+  monthlyTransactions: number;
+  totalAmount: number;
+  monthlyAmount: number;
+  monthlyStatsData: {month: string, transactions: number, amount: number}[];
 }
 
 export default function OwnerDashboard() {
@@ -63,13 +68,16 @@ export default function OwnerDashboard() {
   // Colors for the pie chart
   const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
 
+  const monthlyStatsData = stats?.monthlyStatsData || [];
+
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col md:ml-64">
         <Header title="Owner Dashboard" />
-        
+
         <main className="flex-1 p-4 md:p-6 space-y-6">
           {/* Welcome message */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -89,7 +97,7 @@ export default function OwnerDashboard() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Upcoming Bookings</CardTitle>
@@ -106,7 +114,7 @@ export default function OwnerDashboard() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Available Slots</CardTitle>
@@ -123,7 +131,7 @@ export default function OwnerDashboard() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Services</CardTitle>
@@ -138,6 +146,47 @@ export default function OwnerDashboard() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Active service offerings
                 </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Transaction Cards */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-2xl font-bold">{stats?.totalTransactions || 0}</div>
+                    <p className="text-xs text-muted-foreground">Lifetime</p>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold">{stats?.monthlyTransactions || 0}</div>
+                    <p className="text-xs text-muted-foreground">This month</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-2xl font-bold">₹{stats?.totalAmount || 0}</div>
+                    <p className="text-xs text-muted-foreground">Lifetime</p>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold">₹{stats?.monthlyAmount || 0}</div>
+                    <p className="text-xs text-muted-foreground">This month</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -202,15 +251,71 @@ export default function OwnerDashboard() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center">
-                    <AlertCircle className="h-10 w-10 text-muted-foreground mb-2" />
-                    <p>No service booking data available</p>
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-muted-foreground">No data available</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
-          
+
+          {/* Monthly Statistics Graphs */}
+          <div className="grid gap-4 md:grid-cols-1">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Monthly Transactions</CardTitle>
+              </CardHeader>
+              <CardContent className="h-80">
+                {statsLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Skeleton className="h-64 w-full" />
+                  </div>
+                ) : monthlyStatsData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyStatsData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="transactions" fill="#8884d8" name="Transactions" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-muted-foreground">No data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Monthly Revenue</CardTitle>
+              </CardHeader>
+              <CardContent className="h-80">
+                {statsLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Skeleton className="h-64 w-full" />
+                  </div>
+                ) : monthlyStatsData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyStatsData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="amount" fill="#82ca9d" name="Revenue (₹)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-muted-foreground">No data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Recent bookings */}
           <Card>
             <CardHeader>
