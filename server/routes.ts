@@ -33,9 +33,95 @@ function isCustomer(req: Express.Request, res: Express.Response, next: Express.N
   res.status(403).json({ message: "Unauthorized, customer role required" });
 }
 
+// Chat support response generator
+async function generateChatResponse(message: string): Promise<string> {
+  // In a real implementation, this would be a call to an AI service
+  // Here we're implementing basic keyword matching
+  const lowerMessage = message.toLowerCase();
+  
+  // Simulate a slight network delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Booking-related questions
+  if (lowerMessage.includes('book') || lowerMessage.includes('reserve')) {
+    return "To book a turf, browse available slots on the 'Book Turfs' page, select your preferred time slot, and complete the payment process. Your booking will be confirmed immediately after successful payment.";
+  }
+  
+  // Payment-related questions
+  if (lowerMessage.includes('payment') || lowerMessage.includes('pay') || lowerMessage.includes('cost') || lowerMessage.includes('price')) {
+    return "We support multiple payment methods including UPI, netbanking, credit/debit cards, and digital wallets like Paytm, PhonePe, and Google Pay. Pricing varies by sport: ₹400/hr for cricket, ₹500/hr for football and badminton.";
+  }
+  
+  // Cancellation questions
+  if (lowerMessage.includes('cancel')) {
+    return "You can cancel your booking from your dashboard under 'My Bookings'. Cancellations made at least 24 hours before the scheduled time are eligible for a full refund. Later cancellations may be subject to cancellation fees.";
+  }
+  
+  // Refund questions
+  if (lowerMessage.includes('refund')) {
+    return "Our refund policy offers full refunds for cancellations made at least 24 hours before your booking time. Cancellations within 24 hours receive a 50% refund. No refunds are issued for no-shows or cancellations after the booking time.";
+  }
+  
+  // Booking help
+  if (lowerMessage.includes('help') && lowerMessage.includes('booking')) {
+    return "If you need help with your booking, please provide your booking ID or the specific issue you're facing, and I'll assist you further. You can also view all your bookings in the 'My Bookings' section of your dashboard.";
+  }
+  
+  // Sport-specific questions
+  if (lowerMessage.includes('cricket')) {
+    return "Our cricket turfs feature high-quality pitches with proper markings and professional equipment. Cricket turf bookings are priced at ₹400 per hour.";
+  }
+  
+  if (lowerMessage.includes('football')) {
+    return "Our football turfs are maintained to professional standards with proper markings and goals. Football turf bookings are priced at ₹500 per hour.";
+  }
+  
+  if (lowerMessage.includes('badminton')) {
+    return "Our badminton courts feature professional-grade flooring and nets. Badminton court bookings are priced at ₹500 per hour.";
+  }
+  
+  // Team size questions
+  if (lowerMessage.includes('team') || lowerMessage.includes('players') || lowerMessage.includes('size')) {
+    return "Recommended team sizes: Cricket: 11 players per side (minimum 6), Football: 7-11 players per side (depending on turf size), Badminton: Singles (2 players) or Doubles (4 players).";
+  }
+  
+  // Timing questions
+  if (lowerMessage.includes('time') || lowerMessage.includes('hour') || lowerMessage.includes('duration')) {
+    return "Most of our turfs are available from 6:00 AM to 10:00 PM. You can book a turf for a minimum of 1 hour, and booking duration is flexible based on availability.";
+  }
+  
+  // Equipment questions
+  if (lowerMessage.includes('equipment') || lowerMessage.includes('provide')) {
+    return "Basic equipment is provided for all sports (balls, bats, rackets, etc.), but you're welcome to bring your own. Premium equipment can be rented at an additional cost at select locations.";
+  }
+  
+  // Fallback for unrecognized queries
+  return "Thank you for your message. I'll do my best to help you. Could you please provide more details about your question so I can assist you better?";
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
+  
+  // Chat support API endpoint
+  app.post("/api/chat/support", async (req, res) => {
+    try {
+      const { message } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      // In a real implementation, this would call an AI service or chatbot API
+      // For now, we'll respond with predefined answers based on keywords
+      const response = await generateChatResponse(message);
+      
+      res.json({ response });
+    } catch (error: any) {
+      console.error("Error in chat support:", error);
+      res.status(500).json({ error: "Failed to process chat message" });
+    }
+  });
 
   // Service routes (alias for turfs to maintain compatibility with frontend)
   app.get("/api/services", async (req, res) => {
