@@ -128,11 +128,6 @@ export default function Hero() {
                         </span>
                       </Link>
                     </Button>
-                    <Button asChild variant="outline" size="lg" className="px-6 font-semibold">
-                      <a href="#explore">
-                        Explore Sports <ArrowRight className="ml-2 h-4 w-4" />
-                      </a>
-                    </Button>
                   </motion.div>
                   
                   <motion.div 
