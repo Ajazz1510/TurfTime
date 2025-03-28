@@ -572,13 +572,13 @@ export default function CustomerBookings() {
                           <span className="text-sm">₹{createdBooking.totalAmount?.toLocaleString() || "0"}</span>
                         </div>
                         <div className="flex justify-between items-center mb-2 text-sm">
-                          <span className="font-medium">Platform/Service Charge (4%):</span>
-                          <span>₹{Math.round(createdBooking.totalAmount * 0.04).toLocaleString() || "0"}</span>
+                          <span className="font-medium">Platform/Service Charge (5%):</span>
+                          <span>₹{Math.round(createdBooking.totalAmount * 0.05).toLocaleString() || "0"}</span>
                         </div>
                         <Separator className="my-2" />
                         <div className="flex justify-between items-center text-primary font-bold">
                           <span>Total Amount:</span>
-                          <span>₹{Math.round(createdBooking.totalAmount * 1.04).toLocaleString() || "0"}</span>
+                          <span>₹{Math.round(createdBooking.totalAmount * 1.05).toLocaleString() || "0"}</span>
                         </div>
                       </div>
                       
