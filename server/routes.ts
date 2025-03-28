@@ -389,6 +389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(enhancedBookings);
     } catch (error) {
+      console.error("Error getting bookings:", error);
       res.status(500).json({ message: "Failed to get bookings" });
     }
   });
@@ -653,6 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         availableSlots
       });
     } catch (error) {
+      console.error("Error getting statistics:", error);
       res.status(500).json({ message: "Failed to get statistics" });
     }
   });

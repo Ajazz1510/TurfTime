@@ -168,7 +168,8 @@ export default function ManageBookings() {
   // Separate bookings by status
   const confirmedBookings = filteredBookings?.filter(b => b.status === "confirmed") || [];
   const completedBookings = filteredBookings?.filter(b => b.status === "completed") || [];
-  const canceledBookings = filteredBookings?.filter(b => b.status === "canceled") || [];
+  // Note: Database uses "cancelled" but UI uses "canceled"
+  const canceledBookings = filteredBookings?.filter(b => b.status === "cancelled") || [];
 
   // Bookings table component
   const BookingsTable = ({ bookings }: { bookings: Booking[] }) => (
@@ -315,7 +316,7 @@ export default function ManageBookings() {
                       <SelectItem value="all">All bookings</SelectItem>
                       <SelectItem value="confirmed">Confirmed</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="canceled">Canceled</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -332,8 +333,8 @@ export default function ManageBookings() {
                   <TabsTrigger value="completed">
                     Completed ({completedBookings.length})
                   </TabsTrigger>
-                  <TabsTrigger value="canceled">
-                    Canceled ({canceledBookings.length})
+                  <TabsTrigger value="cancelled">
+                    Cancelled ({canceledBookings.length})
                   </TabsTrigger>
                 </TabsList>
                 
@@ -349,7 +350,7 @@ export default function ManageBookings() {
                   <BookingsTable bookings={completedBookings} />
                 </TabsContent>
                 
-                <TabsContent value="canceled" className="mt-4">
+                <TabsContent value="cancelled" className="mt-4">
                   <BookingsTable bookings={canceledBookings} />
                 </TabsContent>
               </Tabs>
@@ -408,7 +409,7 @@ export default function ManageBookings() {
                       <SelectContent>
                         <SelectItem value="confirmed">Confirmed</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="canceled">Canceled</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
