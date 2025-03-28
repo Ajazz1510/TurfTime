@@ -202,6 +202,7 @@ export default function CustomerBookings() {
     const startTimeISO = bookingStartTime.toISOString();
     const endTimeISO = bookingEndTime.toISOString();
     
+    // Service ID is now generated on the server side
     const bookingData = {
       customerId: user.id,
       ownerId: selectedSlot.ownerId,
