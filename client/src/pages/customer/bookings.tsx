@@ -32,14 +32,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
-// Helper to get price based on sport type
-const getSportPrice = (sportType: string): number => {
+// Helper to get hourly price based on sport type
+const getHourlyPrice = (sportType: string): number => {
   switch(sportType) {
     case "cricket": return 400;
     case "football": return 500;
     case "badminton": return 500;
     default: return 0;
   }
+};
+
+// Calculate total price based on hourly rate and duration
+const calculateTotalPrice = (sportType: string, startTime: Date, endTime: Date): number => {
+  const hourlyRate = getHourlyPrice(sportType);
+  const durationMs = endTime.getTime() - startTime.getTime();
+  const durationHours = durationMs / (1000 * 60 * 60);
+  // Round up to nearest half hour
+  const roundedHours = Math.ceil(durationHours * 2) / 2;
+  return hourlyRate * roundedHours;
 };
 
 // Helper to get default player count based on sport type
@@ -320,7 +330,7 @@ export default function CustomerBookings() {
                           )}
                           <div className="flex items-center">
                             <IndianRupee className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>₹{getSportPrice(turf.sportType).toLocaleString()} per slot</span>
+                            <span>₹{getHourlyPrice(turf.sportType).toLocaleString()} per hour</span>
                           </div>
                           <div className="flex items-center">
                             <User className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -596,10 +606,28 @@ export default function CustomerBookings() {
                     </div>
                     
                     <div className="space-y-1">
-                      <Label>Price</Label>
-                      <div className="font-medium">
-                        ₹{getSportPrice(turfs?.find(t => t.id === selectedTurf)?.sportType || '').toLocaleString()}
-                      </div>
+                      <Label>Price Details</Label>
+                      {(() => {
+                        const sportType = turfs?.find(t => t.id === selectedTurf)?.sportType || '';
+                        const start = selectedStartTime || new Date(selectedSlot.startTime);
+                        const end = selectedEndTime || new Date(selectedSlot.endTime);
+                        const hourlyRate = getHourlyPrice(sportType);
+                        const totalPrice = calculateTotalPrice(sportType, start, end);
+                        
+                        const durationMs = end.getTime() - start.getTime();
+                        const durationHours = Math.ceil((durationMs / (1000 * 60 * 60)) * 2) / 2;
+                        
+                        return (
+                          <div className="font-medium">
+                            <div className="text-primary">
+                              ₹{totalPrice.toLocaleString()} total
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              ₹{hourlyRate}/hr × {durationHours} {durationHours === 1 ? 'hour' : 'hours'}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                     
                     <div className="space-y-1">
