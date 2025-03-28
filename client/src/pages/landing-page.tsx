@@ -7,7 +7,6 @@ import Pricing from "@/components/landing/pricing";
 import Testimonials from "@/components/landing/testimonials";
 import FAQ from "@/components/landing/faq";
 import Footer from "@/components/landing/footer";
-import NearbyTurfs from "@/components/landing/nearby-turfs";
 import AnimatedBackground from "@/components/common/animated-background";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -21,7 +20,6 @@ export default function LandingPage() {
       <main className="relative z-10">
         <Hero />
         <Features />
-        <NearbyTurfs />
         <HowItWorks />
         <Pricing />
         <Testimonials />
