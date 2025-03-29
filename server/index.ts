@@ -54,9 +54,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Fixed the host to "localhost" and removed reusePort to avoid ENOTSUP error
-  const port = 8080;
-  server.listen(port, "localhost", () => {
-    log(`🚀 Server running at http://localhost:${port}`);
-  });
+  const port = process.env.PORT || 8080; // Use environment variable PORT or default to 8080
+server.listen(port, "0.0.0.0", () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
 })();
