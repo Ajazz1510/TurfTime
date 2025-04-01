@@ -1,7 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -44,7 +43,7 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
+    console.error(err); // Log the error for debugging purposes
   });
 
   // Setup Vite in development mode only
@@ -58,4 +57,8 @@ app.use((req, res, next) => {
 server.listen(port, "0.0.0.0", () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+<<<<<<< HEAD
 })();
+=======
+})();
+>>>>>>> 3816e07 (Updated project with Firebase setup)
