@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -54,6 +55,8 @@ app.use((req, res, next) => {
   }
 
   const port = process.env.PORT || 8080; // Use environment variable PORT or default to 8080
-server.listen(port, "0.0.0.0", () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+})();
+
